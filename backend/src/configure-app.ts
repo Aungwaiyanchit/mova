@@ -9,7 +9,8 @@ export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix("api");
   app.enableCors({
     origin: nodeEnv === "production" ? configService.get<string>("frontendUrl") : true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    exposedHeaders: ["Accept-Ranges", "Content-Disposition", "Content-Length", "Content-Range"],
     credentials: true,
   });
   app.useGlobalPipes(

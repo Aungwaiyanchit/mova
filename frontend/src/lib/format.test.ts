@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatRuntime, imageUrl, magnetUrl, movieYear } from "./format";
+import { formatDataRate, formatRuntime, imageUrl, magnetUrl, movieYear } from "./format";
 
 describe("format helpers", () => {
   it("builds list artwork URLs but preserves absolute detail URLs", () => {
@@ -19,5 +19,12 @@ describe("format helpers", () => {
 
   it("creates a magnet URI from an info hash", () => {
     expect(magnetUrl("abc123")).toBe("magnet:?xt=urn:btih:abc123");
+    expect(magnetUrl("abc123", 2)).toBe("magnet:?xt=urn:btih:abc123&fileIndex=2");
+  });
+
+  it("formats live transfer rates", () => {
+    expect(formatDataRate(0)).toBe("0 KB/s");
+    expect(formatDataRate(1_536)).toBe("1.5 KB/s");
+    expect(formatDataRate(3 * 1024 ** 2)).toBe("3.0 MB/s");
   });
 });

@@ -26,6 +26,19 @@ export function formatVotes(votes: number) {
   );
 }
 
-export function magnetUrl(infoHash: string) {
-  return `magnet:?xt=urn:btih:${encodeURIComponent(infoHash)}`;
+export function formatDataRate(bytesPerSecond: number) {
+  if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return "0 KB/s";
+
+  const units = ["B/s", "KB/s", "MB/s", "GB/s"];
+  const unitIndex = Math.min(
+    Math.max(Math.floor(Math.log(bytesPerSecond) / Math.log(1024)), 0),
+    units.length - 1,
+  );
+  const value = bytesPerSecond / 1024 ** unitIndex;
+  return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+export function magnetUrl(infoHash: string, fileIndex?: number) {
+  const index = fileIndex === undefined ? "" : `&fileIndex=${encodeURIComponent(fileIndex)}`;
+  return `magnet:?xt=urn:btih:${encodeURIComponent(infoHash)}${index}`;
 }

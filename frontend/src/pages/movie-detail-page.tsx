@@ -126,7 +126,7 @@ export default function MovieDetailPage() {
                 onClick={() => setSourcesOpen(true)}
               >
                 <Play className="size-4 fill-current" />
-                Find a source
+                Play
               </button>
             </div>
           </div>
@@ -193,8 +193,10 @@ export default function MovieDetailPage() {
       </div>
 
       <SourceDialog
+        key={movie.id}
         movieId={movie.id}
         movieTitle={movie.title}
+        poster={movie.backdrop}
         open={sourcesOpen}
         onClose={() => setSourcesOpen(false)}
       />

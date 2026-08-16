@@ -13,6 +13,7 @@ export async function bootstrap(): Promise<void> {
 
   configureApp(app);
   configureSwagger(app);
+  app.enableShutdownHooks();
 
   await app.listen(port);
 

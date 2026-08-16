@@ -77,6 +77,10 @@ export interface StreamsResponse {
   streams: MovieStream[];
 }
 
+export interface StreamStatus {
+  downloadSpeed: number;
+}
+
 export interface ApiErrorBody {
   statusCode?: number;
   message?: string | string[];

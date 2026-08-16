@@ -4,6 +4,7 @@ import type {
   MovieDetail,
   MovieSort,
   PaginatedMovies,
+  StreamStatus,
   StreamsResponse,
   TimeWindow,
 } from "../types/api";
@@ -64,4 +65,11 @@ export const api = {
   getGenres: async () => (await request<{ data: Genre[] }>("/genres")).data,
   getMovie: (id: number) => request<MovieDetail>(`/movies/${id}`),
   getStreams: (id: number) => request<StreamsResponse>(`/movies/${id}/streams`),
+  getStreamVideoUrl: (id: number, infoHash: string, fileIndex?: number) => {
+    const url = new URL(`${API_URL}/movies/${id}/streams/${infoHash}/video`);
+    if (fileIndex !== undefined) url.searchParams.set("fileIndex", String(fileIndex));
+    return url.toString();
+  },
+  getStreamStatus: (id: number, infoHash: string) =>
+    request<StreamStatus>(`/movies/${id}/streams/${infoHash}/status`),
 };

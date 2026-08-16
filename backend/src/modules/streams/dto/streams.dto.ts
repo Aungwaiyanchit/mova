@@ -36,3 +36,11 @@ export class StreamsResponseDto {
   @ApiProperty({ type: [MovieStreamResponseDto] })
   streams!: MovieStreamResponseDto[];
 }
+
+export class StreamStatusResponseDto {
+  @ApiProperty({
+    description: "Current torrent download rate in bytes per second",
+    example: 3145728,
+  })
+  downloadSpeed!: number;
+}
