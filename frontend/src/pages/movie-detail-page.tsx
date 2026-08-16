@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ImageOff, Play, Star, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { PageLoading } from "../components/loading";
+import { MovieDetailLoading } from "../components/loading";
 import { MovieRail } from "../components/movie-rail";
 import { SourceDialog } from "../components/source-dialog";
 import { StatePanel } from "../components/state-panel";
@@ -29,7 +29,7 @@ export default function MovieDetailPage() {
     );
   }
 
-  if (movieQuery.isPending) return <PageLoading />;
+  if (movieQuery.isPending) return <MovieDetailLoading />;
 
   if (movieQuery.isError) {
     const notFound = movieQuery.error instanceof ApiError && movieQuery.error.status === 404;
