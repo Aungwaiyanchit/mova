@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FeaturedHero } from "../components/featured-hero";
 import { PageLoading } from "../components/loading";
+import { MovieCard } from "../components/movie-card";
 import { MovieRail } from "../components/movie-rail";
 import { StatePanel } from "../components/state-panel";
 import { api } from "../lib/api";
@@ -85,24 +86,12 @@ export default function HomePage() {
           ) : (
             <div className="hide-scrollbar -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-3 md:-mx-8 md:px-8 xl:mx-0 xl:px-0">
               {trending.map((movie, index) => (
-                <Link
-                  className="group relative w-[14rem] shrink-0 snap-start overflow-hidden rounded-xl border border-line bg-surface sm:w-[18rem]"
+                <div
+                  className="w-[9.5rem] shrink-0 snap-start sm:w-[11rem] lg:w-[12rem]"
                   key={movie.id}
-                  to={`/movies/${movie.id}`}
                 >
-                  <div className="absolute right-3 top-2 z-10 font-display text-5xl font-black text-white/15">
-                    {String(index + 1).padStart(2, "0")}
-                  </div>
-                  <div className="p-5 pt-16">
-                    <h3 className="line-clamp-2 font-display text-xl font-bold text-ink group-hover:text-accent-bright">
-                      {movie.title}
-                    </h3>
-                    <p className="mt-3 line-clamp-3 text-xs leading-5 text-muted">
-                      {movie.overview}
-                    </p>
-                  </div>
-                  <div className="h-1 origin-left scale-x-0 bg-accent-bright transition-transform duration-300 group-hover:scale-x-100" />
-                </Link>
+                  <MovieCard movie={movie} priority={index < 3} />
+                </div>
               ))}
             </div>
           )}
