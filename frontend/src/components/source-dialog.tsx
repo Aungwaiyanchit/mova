@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Play, RadioTower, X } from "lucide-react";
+import { HardDrive, Play, Server, Users, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 import {
@@ -7,6 +7,7 @@ import {
   groupStreamsByQuality,
   type StreamQuality,
   streamQuality,
+  streamTechnicalTags,
 } from "../lib/streams";
 import type { MovieStream } from "../types/api";
 import { StatePanel } from "./state-panel";
@@ -179,57 +180,108 @@ export function SourceDialog({
                 ))}
               </fieldset>
 
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                {activeGroup?.streams.map((stream) => {
+              <div className="mt-3 grid gap-4 md:grid-cols-2">
+                {activeGroup?.streams.map((stream, index) => {
                   const directUrl = directStreamUrl(stream);
                   const playable = Boolean(directUrl || stream.infoHash);
                   const playing = selectedStream?.id === stream.id;
+                  const technicalTags = streamTechnicalTags(stream.title);
 
                   return (
                     <article
-                      className={`rounded-xl border bg-surface p-4 transition ${
-                        playing ? "border-accent" : "border-line"
+                      className={`relative flex min-h-72 flex-col overflow-hidden rounded-2xl border bg-surface transition duration-300 hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-xl hover:shadow-black/15 ${
+                        playing ? "border-accent shadow-lg shadow-accent/10" : "border-line"
                       }`}
                       key={stream.id}
                     >
-                      <div className="flex items-start gap-3">
-                        <span className="mt-1 grid size-9 shrink-0 place-items-center rounded-full bg-accent/15 text-accent-bright">
-                          <RadioTower className="size-4" aria-hidden="true" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap gap-2 text-[0.65rem] font-extrabold uppercase tracking-wider">
-                            <span className="rounded bg-accent px-2 py-1 text-white">
+                      <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-accent-bright via-accent to-transparent" />
+                      <div className="flex flex-1 flex-col p-5 pl-6">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="grid h-12 min-w-14 shrink-0 place-items-center rounded-xl bg-accent font-display text-sm font-black text-white shadow-lg shadow-accent/20">
                               {streamQuality(stream)}
                             </span>
-                            <span className="rounded bg-surface-strong px-2 py-1 text-muted">
-                              {directUrl ? "Direct" : "Torrent"}
-                            </span>
-                            {stream.size ? (
-                              <span className="rounded bg-surface-strong px-2 py-1 text-muted">
-                                {stream.size}
-                              </span>
-                            ) : null}
-                            {stream.seeders !== undefined ? (
-                              <span className="rounded bg-surface-strong px-2 py-1 text-muted">
-                                {stream.seeders} seeders
-                              </span>
-                            ) : null}
+                            <div className="min-w-0">
+                              <p className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-faint">
+                                Ranked source {String(index + 1).padStart(2, "0")}
+                              </p>
+                              <p className="mt-1 text-xs font-bold text-muted">
+                                {directUrl ? "Direct stream" : "Torrent release"}
+                              </p>
+                            </div>
                           </div>
-                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted">
-                            {stream.title}
-                          </p>
+                          {playing ? (
+                            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-1 text-[0.6rem] font-extrabold uppercase tracking-wider text-accent-bright">
+                              <span
+                                className="size-1.5 rounded-full bg-accent-bright"
+                                aria-hidden="true"
+                              />
+                              Playing
+                            </span>
+                          ) : null}
                         </div>
-                      </div>
 
-                      <div className="mt-4 border-t border-line pt-3">
+                        <h4
+                          className="mt-5 line-clamp-3 font-display text-[0.95rem] font-bold leading-6 text-ink"
+                          title={stream.title}
+                        >
+                          {stream.title}
+                        </h4>
+
+                        {technicalTags.length ? (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {technicalTags.map((tag) => (
+                              <span
+                                className="rounded-md border border-line bg-surface-strong/60 px-2 py-1 text-[0.6rem] font-bold text-muted"
+                                key={tag}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        <dl className="mt-auto grid grid-cols-3 divide-x divide-line overflow-hidden rounded-xl border border-line bg-page/35">
+                          <div className="min-w-0 px-3 py-2.5">
+                            <dt className="flex items-center gap-1.5 text-[0.55rem] font-extrabold uppercase tracking-wider text-faint">
+                              <Users className="size-3" aria-hidden="true" />
+                              Seeds
+                            </dt>
+                            <dd className="mt-1 truncate text-xs font-extrabold tabular-nums text-ink">
+                              {stream.seeders ?? "--"}
+                            </dd>
+                          </div>
+                          <div className="min-w-0 px-3 py-2.5">
+                            <dt className="flex items-center gap-1.5 text-[0.55rem] font-extrabold uppercase tracking-wider text-faint">
+                              <HardDrive className="size-3" aria-hidden="true" />
+                              Size
+                            </dt>
+                            <dd className="mt-1 truncate text-xs font-extrabold tabular-nums text-ink">
+                              {stream.size ?? "--"}
+                            </dd>
+                          </div>
+                          <div className="min-w-0 px-3 py-2.5">
+                            <dt className="flex items-center gap-1.5 text-[0.55rem] font-extrabold uppercase tracking-wider text-faint">
+                              <Server className="size-3" aria-hidden="true" />
+                              Indexer
+                            </dt>
+                            <dd
+                              className="mt-1 truncate text-xs font-extrabold text-ink"
+                              title={stream.provider}
+                            >
+                              {stream.provider ?? (directUrl ? "Direct" : "Unknown")}
+                            </dd>
+                          </div>
+                        </dl>
+
                         <button
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-bold text-white hover:bg-accent-bright hover:text-page disabled:cursor-not-allowed disabled:opacity-40"
+                          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-accent-bright hover:text-page disabled:cursor-not-allowed disabled:opacity-40"
                           type="button"
                           disabled={!playable}
                           onClick={() => setSelectedStream(stream)}
                         >
                           <Play className="size-3.5 fill-current" />
-                          {playing ? "Playing" : playable ? "Play" : "Unavailable"}
+                          {playing ? "Now playing" : playable ? "Play this source" : "Unavailable"}
                         </button>
                       </div>
                     </article>

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { MovieStream } from "../types/api";
-import { directStreamUrl, groupStreamsByQuality, isHlsStream } from "./streams";
+import {
+  directStreamUrl,
+  groupStreamsByQuality,
+  isHlsStream,
+  streamTechnicalTags,
+} from "./streams";
 
 const directStream: MovieStream = {
   id: "720",
@@ -66,5 +71,11 @@ describe("stream helpers", () => {
     expect(isHlsStream("https://media.test/play?format=hls&token=abc")).toBe(true);
     expect(isHlsStream("https://media.test/play", "hls")).toBe(true);
     expect(isHlsStream("https://media.test/movie.mp4")).toBe(false);
+  });
+
+  it("extracts the release details used by source cards", () => {
+    expect(
+      streamTechnicalTags("Movie 2008 4K UHD BluRay 2160p DoVi HDR TrueHD 7.1 Atmos H.265-MgB"),
+    ).toEqual(["UHD BluRay", "Dolby Vision", "HDR", "TrueHD 7.1", "Atmos", "H.265"]);
   });
 });

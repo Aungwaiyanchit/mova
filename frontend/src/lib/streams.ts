@@ -88,3 +88,24 @@ export function isHlsStream(url: string, type?: string) {
     /[?&](?:format|type)=(?:hls|m3u8)(?:$|&)/i.test(url)
   );
 }
+
+export function streamTechnicalTags(title: string) {
+  const release = title.toUpperCase();
+  const tags: string[] = [];
+
+  if (/\bUHD[ ._-]*BLU-?RAY\b|\bUHD[ ._-]*BLURAY\b/.test(release)) tags.push("UHD BluRay");
+  else if (/\bBLU-?RAY\b|\bBLURAY\b/.test(release)) tags.push("BluRay");
+  else if (/\bWEB[ ._-]*DL\b/.test(release)) tags.push("WEB-DL");
+  else if (/\bWEBRIP\b/.test(release)) tags.push("WEBRip");
+
+  if (/\bDOVI\b|\bDOLBY[ ._-]*VISION\b/.test(release)) tags.push("Dolby Vision");
+  if (/\bHDR10\+/.test(release)) tags.push("HDR10+");
+  else if (/\bHDR10\b/.test(release)) tags.push("HDR10");
+  else if (/\bHDR\b/.test(release)) tags.push("HDR");
+  if (/\bTRUEHD\b/.test(release)) tags.push(release.includes("7.1") ? "TrueHD 7.1" : "TrueHD");
+  if (/\bATMOS\b/.test(release)) tags.push("Atmos");
+  if (/\bH[ ._-]?265\b|\bHEVC\b/.test(release)) tags.push("H.265");
+  else if (/\bH[ ._-]?264\b|\bAVC\b/.test(release)) tags.push("H.264");
+
+  return tags;
+}

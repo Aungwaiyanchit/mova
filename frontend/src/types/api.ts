@@ -70,6 +70,7 @@ export interface MovieStream {
   fileIndex?: number;
   size?: string;
   seeders?: number;
+  provider?: string;
 }
 
 export interface StreamsResponse {
