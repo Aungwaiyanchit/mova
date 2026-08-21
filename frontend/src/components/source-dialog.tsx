@@ -97,14 +97,15 @@ export function SourceDialog({
       <div className="p-5 sm:p-7">
         {selectedStream && selectedUrl ? (
           <VideoPlayer
+            fallbackUrl={fallbackUrl}
             infoHash={selectedStream.infoHash}
             movieId={movieId}
             movieTitle={movieTitle}
             poster={poster}
+            quality={streamQuality(selectedStream)}
             sourceLabel={selectedStream.title}
             streamType={selectedStream.type}
             url={selectedUrl}
-            fallbackUrl={fallbackUrl}
           />
         ) : (
           <div className="grid aspect-video place-items-center rounded-xl border border-line bg-black px-6 text-center">

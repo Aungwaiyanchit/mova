@@ -38,6 +38,16 @@ export function formatDataRate(bytesPerSecond: number) {
   return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
+export function formatClockTime(seconds: number) {
+  const total = Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secondsPart = total % 60;
+  const minuteText = hours ? String(minutes).padStart(2, "0") : String(minutes);
+  const secondText = String(secondsPart).padStart(2, "0");
+  return hours ? `${hours}:${minuteText}:${secondText}` : `${minuteText}:${secondText}`;
+}
+
 export function magnetUrl(infoHash: string, fileIndex?: number) {
   const index = fileIndex === undefined ? "" : `&fileIndex=${encodeURIComponent(fileIndex)}`;
   return `magnet:?xt=urn:btih:${encodeURIComponent(infoHash)}${index}`;
