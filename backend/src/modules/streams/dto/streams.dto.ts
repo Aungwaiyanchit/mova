@@ -27,6 +27,18 @@ export class MovieStreamResponseDto {
 
   @ApiProperty({ example: 150, required: false })
   seeders?: number;
+
+  @ApiProperty({ example: "TorrentGalaxy", required: false })
+  provider?: string;
+
+  @ApiProperty({ example: true, required: false })
+  notWebReady?: boolean;
+
+  @ApiProperty({ example: ["en", "it"], required: false, type: [String] })
+  audioLanguages?: string[];
+
+  @ApiProperty({ example: "Movie.2026.1080p.AAC.mkv", required: false })
+  filename?: string;
 }
 
 export class StreamsResponseDto {
@@ -43,4 +55,20 @@ export class StreamStatusResponseDto {
     example: 3145728,
   })
   downloadSpeed!: number;
+}
+
+export class SubtitleTrackResponseDto {
+  @ApiProperty({ example: "3299934" })
+  id!: string;
+
+  @ApiProperty({ example: "en" })
+  language!: string;
+
+  @ApiProperty({ example: "English" })
+  label!: string;
+}
+
+export class SubtitlesResponseDto {
+  @ApiProperty({ type: [SubtitleTrackResponseDto] })
+  subtitles!: SubtitleTrackResponseDto[];
 }

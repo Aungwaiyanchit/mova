@@ -10,6 +10,7 @@ export const TORRENT_TRACKERS = [
 export const TORRENT_METADATA_TIMEOUT_MS = 30_000;
 export const TORRENT_IDLE_TTL_MS = 5 * 60_000;
 export const TORRENT_SWEEP_INTERVAL_MS = 60_000;
+export const HLS_READY_TIMEOUT_MS = 30_000;
 
 export const VIDEO_MIME_TYPES: Record<string, string> = {
   ".avi": "video/x-msvideo",

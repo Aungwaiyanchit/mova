@@ -71,6 +71,9 @@ export interface MovieStream {
   size?: string;
   seeders?: number;
   provider?: string;
+  notWebReady?: boolean;
+  audioLanguages?: string[];
+  filename?: string;
 }
 
 export interface StreamsResponse {
@@ -80,6 +83,16 @@ export interface StreamsResponse {
 
 export interface StreamStatus {
   downloadSpeed: number;
+}
+
+export interface SubtitleTrack {
+  id: string;
+  language: string;
+  label: string;
+}
+
+export interface SubtitlesResponse {
+  subtitles: SubtitleTrack[];
 }
 
 export interface ApiErrorBody {

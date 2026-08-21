@@ -6,6 +6,7 @@ import type {
   PaginatedMovies,
   StreamStatus,
   StreamsResponse,
+  SubtitlesResponse,
   TimeWindow,
 } from "../types/api";
 
@@ -48,6 +49,16 @@ async function request<T>(path: string, params?: Record<string, string | number 
   return (await response.json()) as T;
 }
 
+async function requestText(path: string, signal?: AbortSignal) {
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: { Accept: "text/vtt" },
+    signal,
+  });
+  if (!response.ok)
+    throw new ApiError(response.status, `Request failed with status ${response.status}`);
+  return response.text();
+}
+
 export const api = {
   getTrending: (timeWindow: TimeWindow, limit = 12) =>
     request<PaginatedMovies>("/movies/trending", { timeWindow, limit }),
@@ -70,6 +81,14 @@ export const api = {
     if (fileIndex !== undefined) url.searchParams.set("fileIndex", String(fileIndex));
     return url.toString();
   },
+  getStreamHlsUrl: (id: number, infoHash: string, fileIndex?: number) => {
+    const url = new URL(`${API_URL}/movies/${id}/streams/${infoHash}/hls/playlist.m3u8`);
+    if (fileIndex !== undefined) url.searchParams.set("fileIndex", String(fileIndex));
+    return url.toString();
+  },
   getStreamStatus: (id: number, infoHash: string) =>
     request<StreamStatus>(`/movies/${id}/streams/${infoHash}/status`),
+  getSubtitles: (id: number) => request<SubtitlesResponse>(`/movies/${id}/subtitles`),
+  getSubtitleFile: (id: number, subtitleId: string, signal?: AbortSignal) =>
+    requestText(`/movies/${id}/subtitles/${subtitleId}`, signal),
 };

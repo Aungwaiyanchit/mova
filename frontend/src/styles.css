@@ -152,6 +152,16 @@ a {
   -webkit-line-clamp: 3;
 }
 
+.mova-video::cue {
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font-family: "Manrope Variable", sans-serif;
+  font-size: clamp(1rem, 2.2vw, 1.65rem);
+  font-weight: 700;
+  line-height: 1.45;
+  text-shadow: 0 2px 8px #000;
+}
+
 @media (min-width: 768px) {
   .page-shell {
     width: min(100% - 4rem, 90rem);

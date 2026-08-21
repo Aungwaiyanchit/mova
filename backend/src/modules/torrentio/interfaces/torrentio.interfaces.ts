@@ -26,6 +26,10 @@ export interface MovieStream {
   fileIndex?: number;
   size?: string;
   seeders?: number;
+  provider?: string;
+  notWebReady?: boolean;
+  audioLanguages?: string[];
+  filename?: string;
 }
 
 export interface NormalizedStreamsResponse {

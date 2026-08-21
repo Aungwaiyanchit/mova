@@ -1,12 +1,17 @@
-import { Controller, Get, Param, Query, Req, Res } from "@nestjs/common";
+import { Controller, Get, Header, Param, Query, Req, Res } from "@nestjs/common";
 import { ApiOperation, ApiParam, ApiProduces, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Request, Response } from "express";
 
 import { ParsePositiveIntPipe } from "src/common/pipes/parse-positive-int.pipe";
 import { StreamVideoQueryDto } from "./dto/stream-video-query.dto";
-import { StreamStatusResponseDto, StreamsResponseDto } from "./dto/streams.dto";
+import {
+  StreamStatusResponseDto,
+  StreamsResponseDto,
+  SubtitlesResponseDto,
+} from "./dto/streams.dto";
 import { ParseInfoHashPipe } from "./parse-info-hash.pipe";
 import { StreamsService } from "./streams.service";
+import { SubtitlesService } from "./subtitles.service";
 import { TorrentStreamingService } from "./torrent-streaming.service";
 
 @ApiTags("Streams")
@@ -14,6 +19,7 @@ import { TorrentStreamingService } from "./torrent-streaming.service";
 export class StreamsController {
   constructor(
     private readonly streamsService: StreamsService,
+    private readonly subtitlesService: SubtitlesService,
     private readonly torrentStreamingService: TorrentStreamingService,
   ) {}
 
@@ -27,6 +33,34 @@ export class StreamsController {
   ): Promise<StreamsResponseDto> {
     const result = await this.streamsService.getMovieStreams(movieId);
     return result;
+  }
+
+  @Get(":id/subtitles")
+  @ApiOperation({ summary: "Get subtitle tracks for a movie" })
+  @ApiParam({ name: "id", description: "TMDB Movie ID", example: "123" })
+  @ApiResponse({
+    status: 200,
+    description: "Available subtitle tracks",
+    type: SubtitlesResponseDto,
+  })
+  async getMovieSubtitles(
+    @Param("id", ParsePositiveIntPipe) movieId: number,
+  ): Promise<SubtitlesResponseDto> {
+    return { subtitles: await this.subtitlesService.getMovieSubtitles(movieId) };
+  }
+
+  @Get(":id/subtitles/:subtitleId")
+  @Header("Content-Type", "text/vtt; charset=utf-8")
+  @Header("Cache-Control", "public, max-age=86400")
+  @ApiOperation({ summary: "Get a subtitle track as WebVTT" })
+  @ApiParam({ name: "id", description: "TMDB Movie ID", example: "123" })
+  @ApiParam({ name: "subtitleId", description: "Subtitle provider track ID", example: "3299934" })
+  @ApiProduces("text/vtt")
+  async getMovieSubtitleFile(
+    @Param("id", ParsePositiveIntPipe) movieId: number,
+    @Param("subtitleId", ParsePositiveIntPipe) subtitleId: number,
+  ): Promise<string> {
+    return this.subtitlesService.getSubtitleFile(movieId, String(subtitleId));
   }
 
   @Get(":id/streams/:infoHash/status")
@@ -43,6 +77,33 @@ export class StreamsController {
     @Param("infoHash", ParseInfoHashPipe) infoHash: string,
   ): StreamStatusResponseDto {
     return this.torrentStreamingService.getStreamStatus(infoHash);
+  }
+
+  @Get(":id/streams/:infoHash/hls/:asset")
+  @ApiOperation({ summary: "Stream browser-compatible HLS with AAC audio" })
+  @ApiParam({ name: "id", description: "TMDB Movie ID", example: "123" })
+  @ApiParam({ name: "infoHash", description: "40-character torrent info hash" })
+  @ApiParam({ name: "asset", description: "HLS playlist or segment filename" })
+  @ApiProduces("application/vnd.apple.mpegurl", "video/mp2t")
+  async streamMovieHlsAsset(
+    @Param("id", ParsePositiveIntPipe) movieId: number,
+    @Param("infoHash", ParseInfoHashPipe) infoHash: string,
+    @Param("asset") asset: string,
+    @Query() query: StreamVideoQueryDto,
+    @Req() request: Request,
+    @Res() response: Response,
+  ): Promise<void> {
+    const prepared = await this.torrentStreamingService.prepareHlsAsset(
+      movieId,
+      infoHash,
+      query.fileIndex,
+      asset,
+    );
+
+    response.status(prepared.statusCode).set(prepared.headers);
+    request.once("aborted", () => prepared.stream.destroy());
+    prepared.stream.once("error", (error) => response.destroy(error));
+    prepared.stream.pipe(response);
   }
 
   @Get(":id/streams/:infoHash/video")

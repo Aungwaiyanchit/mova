@@ -10,6 +10,9 @@ export default () => ({
   torrentio: {
     baseUrl: process.env.TORRENTIO_BASE_URL || "https://torrentio.strem.fun",
   },
+  subtitles: {
+    baseUrl: process.env.SUBTITLES_BASE_URL || "https://opensubtitles-v3.strem.io",
+  },
   cache: {
     ttl: Number.parseInt(process.env.CACHE_TTL || "3600", 10),
   },

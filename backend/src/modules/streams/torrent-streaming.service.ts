@@ -1,3 +1,6 @@
+import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { createReadStream } from "node:fs";
+import { mkdir, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
 import { Readable } from "node:stream";
@@ -10,9 +13,11 @@ import {
   OnModuleDestroy,
   UnprocessableEntityException,
 } from "@nestjs/common";
+import ffmpegInstaller = require("@ffmpeg-installer/ffmpeg");
 import WebTorrent = require("webtorrent");
 import { StreamsService } from "./streams.service";
 import {
+  HLS_READY_TIMEOUT_MS,
   TORRENT_IDLE_TTL_MS,
   TORRENT_METADATA_TIMEOUT_MS,
   TORRENT_SWEEP_INTERVAL_MS,
@@ -34,6 +39,23 @@ export interface PreparedVideoStream {
 
 export interface TorrentStreamStatus {
   downloadSpeed: number;
+}
+
+interface HlsSession {
+  directory: string;
+  lastAccessed: number;
+  process: ChildProcessWithoutNullStreams;
+  ready: Promise<void>;
+  source: Readable;
+  stopped: boolean;
+}
+
+const HLS_ASSET_PATTERN = /^(?:playlist\.m3u8|segment-\d{5}\.ts)$/;
+
+export function hlsAssetContentType(asset: string): string | undefined {
+  if (asset === "playlist.m3u8") return "application/vnd.apple.mpegurl";
+  if (/^segment-\d{5}\.ts$/.test(asset)) return "video/mp2t";
+  return undefined;
 }
 
 export function parseByteRange(rangeHeader: string | undefined, size: number): ByteRange {
@@ -89,7 +111,9 @@ export function selectVideoFile(
 export class TorrentStreamingService implements OnModuleDestroy {
   private readonly logger = new Logger(TorrentStreamingService.name);
   private readonly pendingTorrents = new Map<string, Promise<WebTorrent.Torrent>>();
+  private readonly pendingHlsSessions = new Map<string, Promise<HlsSession>>();
   private readonly activeReaders = new Map<string, number>();
+  private readonly hlsSessions = new Map<string, HlsSession>();
   private readonly lastAccessed = new Map<string, number>();
   private readonly sweepTimer: NodeJS.Timeout;
   private client?: WebTorrent.Instance;
@@ -139,8 +163,56 @@ export class TorrentStreamingService implements OnModuleDestroy {
     return { downloadSpeed: torrent.downloadSpeed };
   }
 
+  async prepareHlsAsset(
+    movieId: number,
+    infoHash: string,
+    fileIndex: number | undefined,
+    asset: string,
+  ): Promise<PreparedVideoStream> {
+    const contentType = hlsAssetContentType(asset);
+    if (!contentType || !HLS_ASSET_PATTERN.test(asset)) {
+      throw new UnprocessableEntityException("Invalid HLS asset");
+    }
+
+    let session = this.hlsSessions.get(infoHash);
+    if (!session) {
+      if (asset !== "playlist.m3u8") throw new UnprocessableEntityException("HLS session expired");
+      session = await this.getOrCreateHlsSession(movieId, infoHash, fileIndex);
+    }
+    session.lastAccessed = Date.now();
+    await session.ready;
+
+    const assetPath = join(session.directory, asset);
+    if (asset === "playlist.m3u8") {
+      const playlist = await readFile(assetPath);
+      return {
+        stream: Readable.from(playlist),
+        statusCode: 200,
+        headers: {
+          "Cache-Control": "no-store",
+          "Content-Length": String(playlist.length),
+          "Content-Type": contentType,
+        },
+      };
+    }
+
+    const assetStats = await stat(assetPath).catch(() => undefined);
+    if (!assetStats?.isFile()) throw new UnprocessableEntityException("HLS asset is not ready");
+
+    return {
+      stream: createReadStream(assetPath),
+      statusCode: 200,
+      headers: {
+        "Cache-Control": "public, max-age=3600",
+        "Content-Length": String(assetStats.size),
+        "Content-Type": contentType,
+      },
+    };
+  }
+
   onModuleDestroy(): void {
     clearInterval(this.sweepTimer);
+    for (const infoHash of this.hlsSessions.keys()) this.removeHlsSession(infoHash);
     this.client?.destroy((error) => {
       if (error) this.logger.warn(`Torrent client shutdown failed: ${String(error)}`);
     });
@@ -225,6 +297,9 @@ export class TorrentStreamingService implements OnModuleDestroy {
 
   private removeIdleTorrents(): void {
     const now = Date.now();
+    for (const [infoHash, session] of this.hlsSessions) {
+      if (now - session.lastAccessed >= TORRENT_IDLE_TTL_MS) this.removeHlsSession(infoHash);
+    }
     for (const [infoHash, lastAccessed] of this.lastAccessed) {
       if (!this.activeReaders.has(infoHash) && now - lastAccessed >= TORRENT_IDLE_TTL_MS) {
         this.removeTorrent(infoHash);
@@ -239,5 +314,138 @@ export class TorrentStreamingService implements OnModuleDestroy {
     client.remove(infoHash, { destroyStore: true }, (error) => {
       if (error) this.logger.warn(`Could not remove torrent ${infoHash}: ${String(error)}`);
     });
+  }
+
+  private async startHlsSession(
+    movieId: number,
+    infoHash: string,
+    fileIndex: number | undefined,
+  ): Promise<HlsSession> {
+    const source = await this.streamsService.resolveTorrentSource(movieId, infoHash, fileIndex);
+    const torrent = await this.getTorrent(infoHash);
+    const file = selectVideoFile(torrent.files, source.fileIndex);
+    if (!file) throw new UnprocessableEntityException("This source does not contain a video file");
+
+    const directory = join(tmpdir(), "mova-hls", infoHash);
+    await rm(directory, { force: true, recursive: true });
+    await mkdir(directory, { recursive: true });
+    const input = file.createReadStream() as Readable;
+    this.retainReader(infoHash, input);
+
+    const process = spawn(
+      ffmpegInstaller.path,
+      [
+        "-hide_banner",
+        "-loglevel",
+        "warning",
+        "-fflags",
+        "+genpts",
+        "-i",
+        "pipe:0",
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a:0?",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-ac",
+        "2",
+        "-max_muxing_queue_size",
+        "2048",
+        "-f",
+        "hls",
+        "-hls_time",
+        "4",
+        "-hls_list_size",
+        "0",
+        "-hls_playlist_type",
+        "event",
+        "-hls_flags",
+        "independent_segments+temp_file",
+        "-hls_segment_filename",
+        join(directory, "segment-%05d.ts"),
+        join(directory, "playlist.m3u8"),
+      ],
+      { stdio: ["pipe", "pipe", "pipe"] },
+    );
+    const session = {
+      directory,
+      lastAccessed: Date.now(),
+      process,
+      ready: Promise.resolve(),
+      source: input,
+      stopped: false,
+    } satisfies HlsSession;
+    session.ready = this.waitForHlsPlaylist(infoHash, session);
+    this.hlsSessions.set(infoHash, session);
+
+    input.pipe(process.stdin);
+    process.stdin.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code !== "EPIPE" && !session.stopped) {
+        this.logger.warn(`FFmpeg input failed for ${infoHash}: ${error.message}`);
+      }
+    });
+    process.stderr.on("data", (chunk: Buffer) => {
+      const message = chunk.toString().trim();
+      if (message) this.logger.debug(`FFmpeg ${infoHash}: ${message}`);
+    });
+    process.once("error", (error) => {
+      this.logger.error(`FFmpeg failed for ${infoHash}: ${error.message}`);
+    });
+    process.once("close", (code) => {
+      if (!session.stopped && code !== 0) {
+        this.logger.warn(`FFmpeg exited for ${infoHash} with code ${String(code)}`);
+      }
+    });
+
+    return session;
+  }
+
+  private getOrCreateHlsSession(
+    movieId: number,
+    infoHash: string,
+    fileIndex: number | undefined,
+  ): Promise<HlsSession> {
+    const pending = this.pendingHlsSessions.get(infoHash);
+    if (pending) return pending;
+
+    const sessionPromise = this.startHlsSession(movieId, infoHash, fileIndex);
+    this.pendingHlsSessions.set(infoHash, sessionPromise);
+    void sessionPromise.then(
+      () => this.pendingHlsSessions.delete(infoHash),
+      () => this.pendingHlsSessions.delete(infoHash),
+    );
+    return sessionPromise;
+  }
+
+  private async waitForHlsPlaylist(infoHash: string, session: HlsSession): Promise<void> {
+    const playlist = join(session.directory, "playlist.m3u8");
+    const deadline = Date.now() + HLS_READY_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      const playlistStats = await stat(playlist).catch(() => undefined);
+      if (playlistStats?.isFile() && playlistStats.size > 0) return;
+      if (session.process.exitCode !== null) break;
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    this.removeHlsSession(infoHash);
+    throw new GatewayTimeoutException("Browser-compatible stream preparation timed out");
+  }
+
+  private removeHlsSession(infoHash: string): void {
+    const session = this.hlsSessions.get(infoHash);
+    if (!session) return;
+    this.hlsSessions.delete(infoHash);
+    this.removeHlsSessionBySession(session);
+  }
+
+  private removeHlsSessionBySession(session: HlsSession): void {
+    session.stopped = true;
+    session.source.destroy();
+    if (session.process.exitCode === null) session.process.kill("SIGKILL");
+    void rm(session.directory, { force: true, recursive: true });
   }
 }

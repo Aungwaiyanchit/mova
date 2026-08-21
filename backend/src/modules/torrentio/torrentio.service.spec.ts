@@ -137,8 +137,66 @@ describe("TorrentioService", () => {
       const result = await service.getMovieStreams(123);
 
       expect(result.streams[0]).toEqual(
-        expect.objectContaining({ type: "torrent", infoHash: "abc123", fileIndex: 2 }),
+        expect.objectContaining({
+          type: "torrent",
+          infoHash: "abc123",
+          fileIndex: 2,
+          notWebReady: undefined,
+        }),
       );
+    });
+
+    it("should preserve the provider web playback hint", async () => {
+      tmdbService.getMovieExternalIds.mockResolvedValue(mockExternalIds);
+      torrentioClient.getStreams.mockResolvedValue({
+        streams: [
+          {
+            name: "Movie 1080p",
+            title: "Movie 1080p",
+            infoHash: "ABC123",
+            behaviorHints: { notWebReady: true },
+          },
+        ],
+      });
+
+      const result = await service.getMovieStreams(123);
+
+      expect(result.streams[0].notWebReady).toBe(true);
+    });
+
+    it("should preserve the release filename", async () => {
+      tmdbService.getMovieExternalIds.mockResolvedValue(mockExternalIds);
+      torrentioClient.getStreams.mockResolvedValue({
+        streams: [
+          {
+            name: "Movie 1080p",
+            title: "Movie 1080p",
+            infoHash: "ABC123",
+            behaviorHints: { filename: "Movie.2026.1080p.AAC.mkv" },
+          },
+        ],
+      });
+
+      const result = await service.getMovieStreams(123);
+
+      expect(result.streams[0].filename).toBe("Movie.2026.1080p.AAC.mkv");
+    });
+
+    it("should preserve audio languages advertised by the provider", async () => {
+      tmdbService.getMovieExternalIds.mockResolvedValue(mockExternalIds);
+      torrentioClient.getStreams.mockResolvedValue({
+        streams: [
+          {
+            name: "Movie 1080p",
+            title: "Movie.2026.ITA.ENG.1080p\n🇬🇧 / 🇮🇹",
+            infoHash: "ABC123",
+          },
+        ],
+      });
+
+      const result = await service.getMovieStreams(123);
+
+      expect(result.streams[0].audioLanguages).toEqual(["en", "it"]);
     });
 
     it("should normalize quality correctly", async () => {
@@ -184,6 +242,32 @@ describe("TorrentioService", () => {
 
       expect(result.streams[0].seeders).toBe(200);
       expect(result.streams[1].seeders).toBe(100);
+    });
+
+    it("should extract release metadata from the Torrentio title", async () => {
+      tmdbService.getMovieExternalIds.mockResolvedValue(mockExternalIds);
+      torrentioClient.getStreams.mockResolvedValue({
+        streams: [
+          {
+            name: "Torrentio\n4K",
+            title:
+              "Indiana Jones and the Kingdom of the Crystal Skull 2008 4K UHD BluRay 2160p DoVi HDR TrueHD 7.1 Atmos H.265-MgB\n👤 26 💾 17.82 GB ⚙️ TorrentGalaxy",
+            behaviorHints: {},
+            url: "magnet:?xt=urn:btih:abc",
+          },
+        ],
+      });
+
+      const result = await service.getMovieStreams(123);
+
+      expect(result.streams[0]).toMatchObject({
+        title:
+          "Indiana Jones and the Kingdom of the Crystal Skull 2008 4K UHD BluRay 2160p DoVi HDR TrueHD 7.1 Atmos H.265-MgB",
+        quality: "4K",
+        seeders: 26,
+        size: "17.82 GB",
+        provider: "TorrentGalaxy",
+      });
     });
   });
 

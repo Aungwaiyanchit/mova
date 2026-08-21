@@ -1,7 +1,7 @@
 import { HttpException } from "@nestjs/common";
 import WebTorrent = require("webtorrent");
 import { TORRENT_TRACKERS } from "./torrent-streaming.constants";
-import { parseByteRange, selectVideoFile } from "./torrent-streaming.service";
+import { hlsAssetContentType, parseByteRange, selectVideoFile } from "./torrent-streaming.service";
 
 function torrentFile(name: string, length: number): WebTorrent.TorrentFile {
   return { name, length } as WebTorrent.TorrentFile;
@@ -53,5 +53,11 @@ describe("torrent streaming helpers", () => {
 
     expect(selectVideoFile(files, 1)?.name).toBe("sample.mp4");
     expect(selectVideoFile(files, 0)?.name).toBe("movie.mkv");
+  });
+
+  it("accepts only generated HLS asset names", () => {
+    expect(hlsAssetContentType("playlist.m3u8")).toBe("application/vnd.apple.mpegurl");
+    expect(hlsAssetContentType("segment-00012.ts")).toBe("video/mp2t");
+    expect(hlsAssetContentType("../movie.mkv")).toBeUndefined();
   });
 });

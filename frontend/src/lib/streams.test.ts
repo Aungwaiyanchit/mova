@@ -3,6 +3,8 @@ import type { MovieStream } from "../types/api";
 import {
   directStreamUrl,
   groupStreamsByQuality,
+  hasEnglishAudio,
+  isBrowserReadyRelease,
   isHlsStream,
   streamTechnicalTags,
 } from "./streams";
@@ -71,6 +73,76 @@ describe("stream helpers", () => {
     expect(isHlsStream("https://media.test/play?format=hls&token=abc")).toBe(true);
     expect(isHlsStream("https://media.test/play", "hls")).toBe(true);
     expect(isHlsStream("https://media.test/movie.mp4")).toBe(false);
+  });
+
+  it("keeps only sources that can provide English audio", () => {
+    expect(hasEnglishAudio({ id: "default", title: "Movie 2026 1080p WEB-DL" })).toBe(true);
+    expect(hasEnglishAudio({ id: "multi", title: "Movie.2026.MULTI.ENG.FRENCH.1080p" })).toBe(true);
+    expect(hasEnglishAudio({ id: "ambiguous", title: "Movie.2026.MULTI.1080p" })).toBe(false);
+    expect(hasEnglishAudio({ id: "french", title: "Movie.2026.French.1080p" })).toBe(false);
+    expect(
+      hasEnglishAudio({ id: "flags", title: "Movie 2026 1080p", audioLanguages: ["en", "it"] }),
+    ).toBe(true);
+    expect(
+      hasEnglishAudio({ id: "foreign-flags", title: "Movie 2026 1080p", audioLanguages: ["hi"] }),
+    ).toBe(false);
+    expect(hasEnglishAudio({ id: "foreign", title: "Movie 1080p", provider: "Rutracker" })).toBe(
+      false,
+    );
+    expect(
+      hasEnglishAudio({
+        id: "foreign-english",
+        title: "Movie.2026.ENG.1080p",
+        provider: "Rutracker",
+      }),
+    ).toBe(true);
+    expect(hasEnglishAudio({ id: "title", title: "The French Dispatch 2021 1080p" })).toBe(true);
+  });
+
+  it("allows direct playback only for browser-decodable releases", () => {
+    expect(
+      isBrowserReadyRelease({
+        id: "mp4-aac",
+        title: "Movie 2026 1080p x264",
+        filename: "Movie.2026.1080p.x264.AAC.mp4",
+      }),
+    ).toBe(true);
+    expect(
+      isBrowserReadyRelease({
+        id: "mp4-ac3",
+        title: "Movie 2026 1080p",
+        filename: "Movie.2026.1080p.DD5.1.mp4",
+      }),
+    ).toBe(false);
+    expect(
+      isBrowserReadyRelease({
+        id: "mkv-aac",
+        title: "Movie 2026 1080p",
+        filename: "Movie.2026.1080p.AAC5.1.mkv",
+      }),
+    ).toBe(true);
+    expect(
+      isBrowserReadyRelease({
+        id: "mkv-dts",
+        title: "Movie 2026 1080p DTS",
+        filename: "Movie.2026.1080p.DTS-HD.MA.5.1.mkv",
+      }),
+    ).toBe(false);
+    expect(
+      isBrowserReadyRelease({ id: "mkv-unknown", title: "Movie 2026", filename: "movie.mkv" }),
+    ).toBe(false);
+    expect(isBrowserReadyRelease({ id: "avi", title: "Movie 2026", filename: "movie.avi" })).toBe(
+      false,
+    );
+    expect(isBrowserReadyRelease({ id: "no-name", title: "Movie 2026 1080p" })).toBe(false);
+    expect(
+      isBrowserReadyRelease({
+        id: "web-ready",
+        title: "Movie 2026",
+        filename: "Movie.2026.mp4",
+        notWebReady: true,
+      }),
+    ).toBe(false);
   });
 
   it("extracts the release details used by source cards", () => {

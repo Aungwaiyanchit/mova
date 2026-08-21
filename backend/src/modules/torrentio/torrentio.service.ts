@@ -55,18 +55,21 @@ export class TorrentioService {
 
   private normalizeStreams(streams: TorrentioStream[]): MovieStream[] {
     return streams.map((stream, index) => {
-      const quality = this.extractQuality(stream.title);
+      const title = this.extractTitle(stream.title);
+      const quality = this.extractQuality(title);
       const type = stream.infoHash ? "torrent" : this.extractType(stream.url);
       const infoHash = stream.infoHash?.toLowerCase() || this.extractInfoHash(stream.url);
       const fileIndex = stream.fileIdx ?? this.extractFileIndex(stream.url);
       const size = stream.behaviorHints?.videoSize
         ? this.formatSize(stream.behaviorHints.videoSize)
-        : undefined;
-      const seeders = this.extractSeeders(stream.name);
+        : this.extractSize(stream.title, stream.name);
+      const seeders = this.extractSeeders(stream.title, stream.name);
+      const provider = this.extractProvider(stream.title, stream.name);
+      const audioLanguages = this.extractAudioLanguages(stream.title);
 
       return {
         id: `stream-${index}`,
-        title: stream.title,
+        title,
         quality,
         type,
         url: stream.url,
@@ -74,8 +77,17 @@ export class TorrentioService {
         fileIndex,
         size,
         seeders,
+        provider,
+        notWebReady: stream.behaviorHints?.notWebReady,
+        audioLanguages,
+        filename: stream.behaviorHints?.filename,
       };
     });
+  }
+
+  private extractTitle(title: string): string {
+    const firstLine = title.split(/\r?\n/).find((line) => line.trim());
+    return firstLine?.replace(/\s*(?:👤|💾|⚙️).*$/u, "").trim() || title.trim();
   }
 
   private extractQuality(title: string): string | undefined {
@@ -123,8 +135,50 @@ export class TorrentioService {
     return `${bytes} B`;
   }
 
-  private extractSeeders(name: string): number | undefined {
-    const seederMatch = name.match(/👤\s*(\d+)/) || name.match(/(\d+)\s*seeders?/i);
+  private extractSeeders(...values: string[]): number | undefined {
+    const metadata = values.join("\n");
+    const seederMatch = metadata.match(/👤\s*(\d+)/u) || metadata.match(/(\d+)\s*seeders?/i);
     return seederMatch ? Number.parseInt(seederMatch[1], 10) : undefined;
+  }
+
+  private extractSize(...values: string[]): string | undefined {
+    const sizeMatch = values.join("\n").match(/💾\s*(\d+(?:\.\d+)?)\s*(TB|GB|MB|KB|B)\b/iu);
+    return sizeMatch ? `${sizeMatch[1]} ${sizeMatch[2].toUpperCase()}` : undefined;
+  }
+
+  private extractProvider(...values: string[]): string | undefined {
+    const providerMatch = values.join("\n").match(/⚙️\s*([^\r\n]+)/u);
+    return providerMatch?.[1].trim() || undefined;
+  }
+
+  private extractAudioLanguages(title: string): string[] | undefined {
+    const languages = [
+      ["🇬🇧", "en"],
+      ["🇺🇸", "en"],
+      ["🇨🇦", "en"],
+      ["🇦🇺", "en"],
+      ["🇳🇿", "en"],
+      ["🇫🇷", "fr"],
+      ["🇩🇪", "de"],
+      ["🇮🇹", "it"],
+      ["🇪🇸", "es"],
+      ["🇲🇽", "es-MX"],
+      ["🇵🇹", "pt"],
+      ["🇧🇷", "pt-BR"],
+      ["🇷🇺", "ru"],
+      ["🇺🇦", "uk"],
+      ["🇮🇳", "hi"],
+      ["🇯🇵", "ja"],
+      ["🇰🇷", "ko"],
+      ["🇨🇳", "zh"],
+      ["🇹🇼", "zh-TW"],
+      ["🇵🇱", "pl"],
+      ["🇨🇿", "cs"],
+    ] as const;
+    const detected = languages.flatMap(([flag, language]) =>
+      title.includes(flag) ? [language] : [],
+    );
+    if (detected.length) return [...new Set(detected)];
+    return /[\u{1f1e6}-\u{1f1ff}]{2}/u.test(title) ? ["und"] : undefined;
   }
 }

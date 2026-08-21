@@ -5,6 +5,8 @@ import { api } from "../lib/api";
 import {
   directStreamUrl,
   groupStreamsByQuality,
+  hasEnglishAudio,
+  isBrowserReadyRelease,
   type StreamQuality,
   streamQuality,
   streamTechnicalTags,
@@ -51,16 +53,20 @@ export function SourceDialog({
     onClose();
   }
 
-  const streams = streamsQuery.data?.streams ?? [];
+  const streams = (streamsQuery.data?.streams ?? []).filter(hasEnglishAudio);
   const groups = groupStreamsByQuality(streams);
   const activeQuality = selectedQuality ?? groups[0]?.quality;
   const activeGroup = groups.find((group) => group.quality === activeQuality);
-  const selectedUrl = selectedStream
-    ? (directStreamUrl(selectedStream) ??
-      (selectedStream.infoHash
-        ? api.getStreamVideoUrl(movieId, selectedStream.infoHash, selectedStream.fileIndex)
-        : undefined))
+  const directUrl = selectedStream ? directStreamUrl(selectedStream) : undefined;
+  const torrentVideoUrl = selectedStream?.infoHash
+    ? api.getStreamVideoUrl(movieId, selectedStream.infoHash, selectedStream.fileIndex)
     : undefined;
+  const torrentHlsUrl = selectedStream?.infoHash
+    ? api.getStreamHlsUrl(movieId, selectedStream.infoHash, selectedStream.fileIndex)
+    : undefined;
+  const directPlayback = Boolean(selectedStream && isBrowserReadyRelease(selectedStream));
+  const selectedUrl = directUrl ?? (directPlayback ? torrentVideoUrl : torrentHlsUrl);
+  const fallbackUrl = directUrl || !directPlayback ? undefined : torrentHlsUrl;
 
   return (
     <dialog
@@ -98,6 +104,7 @@ export function SourceDialog({
             sourceLabel={selectedStream.title}
             streamType={selectedStream.type}
             url={selectedUrl}
+            fallbackUrl={fallbackUrl}
           />
         ) : (
           <div className="grid aspect-video place-items-center rounded-xl border border-line bg-black px-6 text-center">
@@ -147,8 +154,8 @@ export function SourceDialog({
           {streamsQuery.isSuccess && streams.length === 0 ? (
             <div className="mt-5">
               <StatePanel
-                title="No sources found"
-                message="There are no sources listed for this title right now."
+                title="No English audio sources found"
+                message="There are no English audio sources listed for this title right now."
               />
             </div>
           ) : null}
@@ -293,7 +300,8 @@ export function SourceDialog({
         </div>
 
         <p className="mt-5 text-xs leading-5 text-faint">
-          Up to four sources per quality are ranked by seed availability and streamed through MOVA.
+          English audio sources are ranked by seed availability, up to four per quality. Sources
+          that need conversion use AAC audio for browser playback.
         </p>
       </div>
     </dialog>

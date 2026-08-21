@@ -9,6 +9,35 @@ export interface StreamGroup {
   streams: MovieStream[];
 }
 
+const NON_ENGLISH_PROVIDERS = new Set([
+  "anidex",
+  "besttorrents",
+  "bludv",
+  "cinecalidad",
+  "comando",
+  "horriblesubs",
+  "ilcorsaronero",
+  "mejortorrent",
+  "micoleaodublado",
+  "nyaasi",
+  "nekobt",
+  "rutor",
+  "rutracker",
+  "tokyotosho",
+  "torrent9",
+  "wolfmax4k",
+]);
+
+const ENGLISH_AUDIO_TAG = /(?:^|[ ._[\]()/+-])(?:EN|ENG|ENGLISH)(?=$|[ ._[\]()/+-])/i;
+const AMBIGUOUS_AUDIO_TAG = /(?:^|[ ._[\]()/+-])(?:MULTI\d*|DUAL[ ._-]?AUDIO)(?=$|[ ._[\]()/+-])/i;
+const NON_ENGLISH_AUDIO_TAG =
+  /(?:^|[ ._[\]()/+-])(?:ARABIC|BRAZILIAN|BULGARIAN|CANTONESE|CASTELLANO|CHINESE|CROATIAN|CZE|CZECH|DANISH|DEU|DEUTSCH|DUTCH|ESP|FINNISH|FRE|FRENCH|GER|GERMAN|GREEK|HEBREW|HINDI|HUNGARIAN|INDONESIAN|ITA|ITALIAN|JAPANESE|KOREAN|LATINO|MANDARIN|NORWEGIAN|PERSIAN|POL|POLISH|POR|PORTUGUESE|ROMANIAN|RUS|RUSSIAN|SERBIAN|SPA|SPANISH|SWEDISH|TAMIL|TELUGU|THAI|TRUEFRENCH|TURKISH|UKR|UKRAINIAN|VFQ|VIETNAMESE)(?=$|[ ._[\]()/+-])/i;
+
+const BROWSER_SAFE_AUDIO_TAG = /(?:^|[^A-Z0-9])(?:AAC|MP3|OPUS)(?![A-Z])/i;
+const BROWSER_UNSAFE_AUDIO_TAG =
+  /(?:^|[^A-Z0-9])(?:E-?AC3|AC3|DD[P+]?|DTS|TRUEHD|DOLBY|ATMOS|FLAC|L?PCM)(?![A-Z])/i;
+const RELEASE_CONTAINER_TAG = /\.(mp4|m4v|webm|mov|mkv|avi)(?:$|[^A-Z0-9])/i;
+
 function isPrivateHost(hostname: string) {
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return true;
@@ -72,6 +101,34 @@ export function groupStreamsByQuality(streams: MovieStream[]): StreamGroup[] {
       .slice(0, 4);
     return ranked?.length ? [{ quality, streams: ranked }] : [];
   });
+}
+
+export function hasEnglishAudio(stream: MovieStream) {
+  if (stream.audioLanguages?.length) return stream.audioLanguages.includes("en");
+
+  const yearIndex = stream.title.search(/\b(?:19|20)\d{2}\b/);
+  const releaseMetadata = yearIndex === -1 ? stream.title : stream.title.slice(yearIndex + 4);
+  if (ENGLISH_AUDIO_TAG.test(releaseMetadata)) return true;
+
+  const provider = stream.provider?.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (provider && NON_ENGLISH_PROVIDERS.has(provider)) return false;
+  if (AMBIGUOUS_AUDIO_TAG.test(releaseMetadata)) return false;
+  return !NON_ENGLISH_AUDIO_TAG.test(releaseMetadata);
+}
+
+export function isBrowserReadyRelease(stream: MovieStream) {
+  if (stream.notWebReady) return false;
+
+  const metadata = `${stream.title} ${stream.filename ?? ""}`;
+  const container = RELEASE_CONTAINER_TAG.exec(metadata)?.[1]?.toLowerCase();
+  const safeAudio = BROWSER_SAFE_AUDIO_TAG.test(metadata);
+  const unsafeAudio = BROWSER_UNSAFE_AUDIO_TAG.test(metadata);
+
+  if (container === "mkv") return safeAudio && !unsafeAudio;
+  if (container === "mp4" || container === "m4v" || container === "webm" || container === "mov") {
+    return safeAudio || !unsafeAudio;
+  }
+  return false;
 }
 
 export function directStreamUrl(stream: MovieStream) {
