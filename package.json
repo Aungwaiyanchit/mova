@@ -1,0 +1,26 @@
+{
+  "name": "mova",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Dev CLI for the mova workspace (backend + frontend)",
+  "bin": {
+    "mova": "./cli/index.ts"
+  },
+  "scripts": {
+    "mova": "bun cli/index.ts",
+    "dev": "bun cli/index.ts dev",
+    "health": "bun cli/index.ts health",
+    "clean": "bun cli/index.ts clean",
+    "doctor": "bun cli/index.ts doctor",
+    "install:all": "bun cli/index.ts install",
+    "build": "bun cli/index.ts build",
+    "check": "bun cli/index.ts check",
+    "test": "bun cli/index.ts test",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.14",
+    "typescript": "^5.9.2"
+  }
+}
