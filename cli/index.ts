@@ -15,9 +15,10 @@ ${paint("bold", "Usage")}:
   mova <command> [options]
 
 ${paint("bold", "Commands")}:
-  dev         Run backend + frontend concurrently with prefixed logs
+  dev         Run backend + frontend concurrently (quiet: link + readiness only)
                 --api            run backend only
                 --web            run frontend only
+                --verbose        stream full backend/frontend logs
                 --api-port <n>   backend port (default 3000)
                 --web-port <n>   frontend port (default 5173)
   health      Check env config and running services
@@ -76,6 +77,7 @@ async function main(): Promise<number> {
     const values = parse(rest, {
       api: { type: "boolean" },
       web: { type: "boolean" },
+      verbose: { type: "boolean" },
       "api-port": { type: "string" },
       "web-port": { type: "string" },
     });
@@ -85,7 +87,7 @@ async function main(): Promise<number> {
     const wantsWeb = values.web === true || values.api !== true;
     const apps = APPS.filter((a) => (a.id === "api" ? wantsApi : wantsWeb));
     if (apps.length === 0) failWithUsage("dev: nothing to run");
-    return devCommand({ apps, apiPort, webPort });
+    return devCommand({ apps, apiPort, webPort, verbose: values.verbose === true });
   }
 
   if (command === "health") {

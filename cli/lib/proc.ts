@@ -6,12 +6,32 @@ export interface StreamSpec {
   label: string;
   color: Color;
   env?: Record<string, string>;
+  /** When true, hide normal output; only error-looking lines stream, and the tail is dumped on a non-zero exit. */
+  quiet?: boolean;
 }
 
 export interface StreamedProc {
   label: string;
+  color: Color;
   proc: Bun.Subprocess;
   exited: Promise<number>;
+  recentLines: () => string[];
+}
+
+const RECENT_MAX = 40;
+
+const ERROR_PATTERNS = [
+  /\berror\b/i,
+  /\berr!?$/i,
+  /failed/i,
+  /exception/i,
+  /eaddrinuse/i,
+  /econnrefused/i,
+  /cannot find module/i,
+];
+
+function isErrorLine(line: string): boolean {
+  return ERROR_PATTERNS.some((re) => re.test(line)) || /^\s*at\s+\S+\s+\(/.test(line);
 }
 
 function printPrefixed(label: string, color: Color, text: string): void {
@@ -20,7 +40,11 @@ function printPrefixed(label: string, color: Color, text: string): void {
   }
 }
 
-async function pipeStream(stream: ReadableStream<Uint8Array>, label: string, color: Color): Promise<void> {
+async function pipeStream(
+  stream: ReadableStream<Uint8Array>,
+  spec: { label: string; color: Color; quiet?: boolean },
+  recent: string[],
+): Promise<void> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -29,14 +53,19 @@ async function pipeStream(stream: ReadableStream<Uint8Array>, label: string, col
     buffer = lines.pop() ?? "";
     return lines;
   };
+  const handle = (line: string) => {
+    recent.push(line);
+    if (recent.length > RECENT_MAX) recent.splice(0, recent.length - RECENT_MAX);
+    if (!spec.quiet || isErrorLine(line)) printPrefixed(spec.label, spec.color, line);
+  };
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
-    for (const l of takeLines()) printPrefixed(label, color, l);
+    for (const l of takeLines()) handle(l);
   }
   buffer += decoder.decode();
-  if (buffer) printPrefixed(label, color, buffer);
+  if (buffer) handle(buffer);
 }
 
 export function spawnStreamed(spec: StreamSpec): StreamedProc {
@@ -48,18 +77,26 @@ export function spawnStreamed(spec: StreamSpec): StreamedProc {
     env: { ...process.env, FORCE_COLOR: "1", ...spec.env },
   });
 
+  const recent: string[] = [];
+
   const exited = new Promise<number>((resolve) => {
     proc.exited
-      .then((code) => {
-        resolve(typeof code === "number" ? code : 1);
+      .then(async (code) => {
+        const numeric = typeof code === "number" ? code : 1;
+        if (spec.quiet && numeric !== 0) {
+          const tail = recent.slice(-RECENT_MAX);
+          printPrefixed(spec.label, spec.color, `process exited with code ${numeric}; last output:`);
+          for (const line of tail) printPrefixed(spec.label, spec.color, line);
+        }
+        resolve(numeric);
       })
       .catch(() => resolve(1));
   });
 
-  if (proc.stdout) void pipeStream(proc.stdout as ReadableStream<Uint8Array>, spec.label, spec.color);
-  if (proc.stderr) void pipeStream(proc.stderr as ReadableStream<Uint8Array>, spec.label, spec.color);
+  if (proc.stdout) void pipeStream(proc.stdout as ReadableStream<Uint8Array>, spec, recent);
+  if (proc.stderr) void pipeStream(proc.stderr as ReadableStream<Uint8Array>, spec, recent);
 
-  return { label: spec.label, proc, exited };
+  return { label: spec.label, color: spec.color, proc, exited, recentLines: () => [...recent] };
 }
 
 export async function runInherit(cmd: string[], cwd: string): Promise<number> {
