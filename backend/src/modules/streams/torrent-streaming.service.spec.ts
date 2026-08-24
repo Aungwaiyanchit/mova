@@ -1,7 +1,13 @@
-import { HttpException } from "@nestjs/common";
+import { HttpException, ServiceUnavailableException } from "@nestjs/common";
 import WebTorrent = require("webtorrent");
-import { TORRENT_TRACKERS } from "./torrent-streaming.constants";
-import { hlsAssetContentType, parseByteRange, selectVideoFile } from "./torrent-streaming.service";
+import { StreamsService } from "./streams.service";
+import { MAX_ACTIVE_TORRENTS, TORRENT_TRACKERS } from "./torrent-streaming.constants";
+import {
+  TorrentStreamingService,
+  hlsAssetContentType,
+  parseByteRange,
+  selectVideoFile,
+} from "./torrent-streaming.service";
 
 function torrentFile(name: string, length: number): WebTorrent.TorrentFile {
   return { name, length } as WebTorrent.TorrentFile;
@@ -59,5 +65,38 @@ describe("torrent streaming helpers", () => {
     expect(hlsAssetContentType("playlist.m3u8")).toBe("application/vnd.apple.mpegurl");
     expect(hlsAssetContentType("segment-00012.ts")).toBe("video/mp2t");
     expect(hlsAssetContentType("../movie.mkv")).toBeUndefined();
+  });
+});
+
+describe("TorrentStreamingService", () => {
+  const infoHash = "0123456789abcdef0123456789abcdef01234567";
+
+  it("rejects new torrents once the active torrent limit is reached", async () => {
+    const streamsService = { resolveTorrentSource: jest.fn() } as unknown as StreamsService;
+    const service = new TorrentStreamingService(streamsService);
+    (service as unknown as { client: unknown }).client = {
+      torrents: Array.from({ length: MAX_ACTIVE_TORRENTS }, () => ({})),
+      get: () => undefined,
+    };
+
+    await expect(
+      service.prepareVideoStream(123, infoHash, undefined, undefined),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it("does not count already-active torrents against the limit", async () => {
+    const streamsService = {
+      resolveTorrentSource: jest.fn().mockResolvedValue({ infoHash }),
+    } as unknown as StreamsService;
+    const service = new TorrentStreamingService(streamsService);
+    const torrent = { ready: true, files: [] };
+    (service as unknown as { client: unknown }).client = {
+      torrents: Array.from({ length: MAX_ACTIVE_TORRENTS }, () => torrent),
+      get: () => torrent,
+    };
+
+    await expect(service.prepareVideoStream(123, infoHash, undefined, undefined)).rejects.toThrow(
+      "This source does not contain a video file",
+    );
   });
 });

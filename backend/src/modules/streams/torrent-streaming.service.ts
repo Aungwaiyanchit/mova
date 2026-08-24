@@ -11,6 +11,7 @@ import {
   Injectable,
   Logger,
   OnModuleDestroy,
+  ServiceUnavailableException,
   UnprocessableEntityException,
 } from "@nestjs/common";
 import ffmpegInstaller = require("@ffmpeg-installer/ffmpeg");
@@ -18,6 +19,7 @@ import WebTorrent = require("webtorrent");
 import { StreamsService } from "./streams.service";
 import {
   HLS_READY_TIMEOUT_MS,
+  MAX_ACTIVE_TORRENTS,
   TORRENT_IDLE_TTL_MS,
   TORRENT_METADATA_TIMEOUT_MS,
   TORRENT_SWEEP_INTERVAL_MS,
@@ -234,6 +236,12 @@ export class TorrentStreamingService implements OnModuleDestroy {
 
     const pending = this.pendingTorrents.get(infoHash);
     if (pending) return pending;
+
+    if (client.torrents.length >= MAX_ACTIVE_TORRENTS) {
+      return Promise.reject(
+        new ServiceUnavailableException("Stream capacity is exhausted, try again later"),
+      );
+    }
 
     const torrentPromise = new Promise<WebTorrent.Torrent>((resolve, reject) => {
       const torrent =
