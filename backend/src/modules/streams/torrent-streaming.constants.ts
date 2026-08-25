@@ -20,3 +20,5 @@ export const VIDEO_MIME_TYPES: Record<string, string> = {
   ".mp4": "video/mp4",
   ".webm": "video/webm",
 };
+
+export const MAX_ACTIVE_TORRENTS = 10;
