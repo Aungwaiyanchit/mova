@@ -5,6 +5,11 @@ describe("theme persistence", () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.removeAttribute("data-theme");
+    document.head.querySelector('meta[name="theme-color"]')?.remove();
+    const meta = document.createElement("meta");
+    meta.name = "theme-color";
+    meta.content = "#081014";
+    document.head.append(meta);
   });
 
   it("uses plum tide when storage is absent or malformed", () => {
@@ -18,5 +23,8 @@ describe("theme persistence", () => {
     applyTheme(getStoredTheme());
     expect(getStoredTheme()).toBe("blue-hour");
     expect(document.documentElement.dataset.theme).toBe("blue-hour");
+    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute("content")).toBe(
+      "#091018",
+    );
   });
 });

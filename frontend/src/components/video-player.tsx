@@ -121,7 +121,7 @@ function SeekBar({
       </div>
       {bubbleTime !== undefined ? (
         <span
-          className="pointer-events-none absolute -top-7 -translate-x-1/2 rounded-md bg-black/90 px-1.5 py-0.5 text-[0.6rem] font-bold tabular-nums text-white"
+          className="pointer-events-none absolute -top-7 -translate-x-1/2 rounded-md bg-black/90 px-1.5 py-0.5 text-xs font-bold tabular-nums text-white"
           style={{ left: `${(bubbleRatio ?? 0) * 100}%` }}
         >
           {formatClockTime(bubbleTime)}
@@ -171,6 +171,7 @@ export function VideoPlayer({
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string>();
   const [subtitleMenuOpen, setSubtitleMenuOpen] = useState(false);
   const [subtitleUrl, setSubtitleUrl] = useState<string>();
+  const [loadToken, setLoadToken] = useState(0);
   const [volume, setVolume] = useState(1);
   const subtitlesQuery = useQuery({
     queryKey: ["movie-subtitles", movieId],
@@ -200,6 +201,8 @@ export function VideoPlayer({
     setDownloadSpeed(undefined);
     setPlaybackState("Connecting");
     audioProbeDoneRef.current = false;
+
+    void loadToken;
 
     async function attachSource(element: HTMLVideoElement, sourceUrl: string) {
       if (!isHlsStream(sourceUrl, streamType)) {
@@ -245,7 +248,7 @@ export function VideoPlayer({
       videoElement.removeAttribute("src");
       videoElement.load();
     };
-  }, [playbackUrl, streamType]);
+  }, [loadToken, playbackUrl, streamType]);
 
   useEffect(() => {
     if (!infoHash) return;
@@ -376,6 +379,12 @@ export function VideoPlayer({
     await playerRef.current?.requestFullscreen();
   }
 
+  function retryPlayback() {
+    setError(undefined);
+    setPlaybackState("Connecting");
+    setLoadToken((token) => token + 1);
+  }
+
   function handleKeyDown(event: React.KeyboardEvent<HTMLElement>) {
     if ((event.target as HTMLElement).closest("button, input, select, [role='slider']")) return;
     if (event.key === " " || event.key.toLowerCase() === "k") {
@@ -398,10 +407,16 @@ export function VideoPlayer({
 
   return (
     <div
-      className={`relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl outline-none fullscreen:aspect-auto fullscreen:h-screen fullscreen:w-screen fullscreen:rounded-none fullscreen:border-0 ${
+      className={`relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl fullscreen:aspect-auto fullscreen:h-screen fullscreen:w-screen fullscreen:rounded-none fullscreen:border-0 ${
         !controlsVisible ? "cursor-none" : ""
       }`}
       ref={playerRef}
+      role="application"
+      aria-label={`Video player for ${movieTitle}`}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: custom player captures keyboard shortcuts
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      onPointerDown={() => playerRef.current?.focus({ preventScroll: true })}
       onPointerMove={revealControls}
       onPointerLeave={() => playing && setSubtitleMenuOpen(false)}
     >
@@ -416,7 +431,6 @@ export function VideoPlayer({
         preload="metadata"
         onClick={togglePlay}
         onDoubleClick={() => void toggleFullscreen()}
-        onKeyDown={handleKeyDown}
         onCanPlay={() => {
           if (videoRef.current?.paused) setPlaybackState("Paused");
         }}
@@ -519,27 +533,24 @@ export function VideoPlayer({
             <p className="truncate text-sm font-bold fullscreen:text-base" title={movieTitle}>
               {movieTitle}
             </p>
-            <p
-              className="mt-0.5 max-w-xl truncate text-[0.65rem] text-white/60"
-              title={sourceLabel}
-            >
+            <p className="mt-0.5 max-w-xl truncate text-xs text-white/75" title={sourceLabel}>
               {sourceLabel}
             </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {quality ? (
-            <span className="rounded-md bg-accent px-2 py-1 text-[0.6rem] font-extrabold uppercase tracking-wide text-white">
+            <span className="rounded-md bg-accent px-2 py-1 text-xs font-extrabold uppercase tracking-wide text-white">
               {quality}
             </span>
           ) : null}
           {streamType ? (
-            <span className="rounded-md bg-white/15 px-2 py-1 text-[0.6rem] font-extrabold uppercase tracking-wide text-white/75">
+            <span className="rounded-md bg-white/15 px-2 py-1 text-xs font-extrabold uppercase tracking-wide text-white/75">
               {streamType}
             </span>
           ) : null}
           <span
-            className={`size-1.5 rounded-full ${playing ? "bg-emerald-400" : "bg-amber-400"}`}
+            className={`size-1.5 rounded-full ${playing ? "bg-accent-bright" : "bg-white/50"}`}
             aria-hidden="true"
           />
         </div>
@@ -576,9 +587,9 @@ export function VideoPlayer({
               aria-label={`Skip back ${SKIP_SECONDS} seconds`}
               onClick={() => skip(-SKIP_SECONDS)}
             >
-              <span className="relative grid place-items-center">
-                <RotateCcw className="size-5" aria-hidden="true" />
-                <span className="absolute -mt-4 text-[0.5rem] font-extrabold">10</span>
+              <span className="flex flex-col items-center leading-none">
+                <RotateCcw className="size-4" aria-hidden="true" />
+                <span className="mt-0.5 text-[0.65rem] font-extrabold">10</span>
               </span>
             </button>
             <button
@@ -587,9 +598,9 @@ export function VideoPlayer({
               aria-label={`Skip forward ${SKIP_SECONDS} seconds`}
               onClick={() => skip(SKIP_SECONDS)}
             >
-              <span className="relative grid place-items-center">
-                <RotateCw className="size-5" aria-hidden="true" />
-                <span className="absolute -mt-4 text-[0.5rem] font-extrabold">10</span>
+              <span className="flex flex-col items-center leading-none">
+                <RotateCw className="size-4" aria-hidden="true" />
+                <span className="mt-0.5 text-[0.65rem] font-extrabold">10</span>
               </span>
             </button>
             <div className="flex items-center gap-1 pl-0.5">
@@ -616,7 +627,7 @@ export function VideoPlayer({
                 }}
               />
             </div>
-            <span className="ml-1 hidden text-[0.65rem] font-bold tabular-nums text-white/75 min-[420px]:inline">
+            <span className="ml-1 hidden text-xs font-bold tabular-nums text-white/75 min-[420px]:inline">
               {formatClockTime(currentTime)} / {formatClockTime(duration)}
             </span>
           </div>
@@ -681,7 +692,7 @@ export function VideoPlayer({
               ) : null}
             </div>
             <span
-              className="inline-flex items-center gap-1.5 rounded-full px-2 text-[0.65rem] font-bold tabular-nums text-white/75"
+              className="inline-flex items-center gap-1.5 rounded-full px-2 text-xs font-bold tabular-nums text-white/75"
               title="Download speed"
             >
               <Download className="size-3.5" aria-hidden="true" />
@@ -712,7 +723,14 @@ export function VideoPlayer({
           <div>
             <AlertCircle className="mx-auto size-7 text-accent-bright" aria-hidden="true" />
             <p className="mt-3 text-sm font-bold text-white">Playback unavailable</p>
-            <p className="mt-1 text-xs text-white/60">{error}</p>
+            <p className="mt-1 text-xs text-white/75">{error}</p>
+            <button
+              className="mt-4 rounded-full bg-accent px-5 py-2 text-xs font-extrabold text-white transition hover:bg-accent-bright hover:text-page"
+              type="button"
+              onClick={retryPlayback}
+            >
+              Try again
+            </button>
           </div>
         </div>
       ) : null}

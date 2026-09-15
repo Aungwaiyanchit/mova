@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FeaturedHero } from "../components/featured-hero";
 import { PageLoading } from "../components/loading";
-import { MovieCard } from "../components/movie-card";
 import { MovieRail } from "../components/movie-rail";
 import { StatePanel } from "../components/state-panel";
 import { api } from "../lib/api";
@@ -29,7 +28,7 @@ export default function HomePage() {
       <div className="page-shell py-16">
         <StatePanel
           kind="error"
-          title="The projector is offline"
+          title="Movies are unavailable"
           message="MOVA could not reach the movie service. Check that the API is running and try again."
           actionLabel="Try again"
           onAction={() => {
@@ -46,70 +45,38 @@ export default function HomePage() {
 
   return (
     <>
-      {trending.length ? <FeaturedHero movies={trending} /> : null}
+      {trendingQuery.isError ? (
+        <div className="page-shell py-16">
+          <StatePanel
+            kind="error"
+            title="Trending titles are unavailable"
+            message="The rest of the catalog is still open. Try this section again."
+            actionLabel="Retry"
+            onAction={() => trendingQuery.refetch()}
+          />
+        </div>
+      ) : trending.length ? (
+        <FeaturedHero
+          key={timeWindow}
+          movies={trending}
+          timeWindow={timeWindow}
+          onTimeWindowChange={setTimeWindow}
+        />
+      ) : null}
       <div className="page-shell space-y-20 py-16 sm:py-20">
-        <section>
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.24em] text-accent-bright">
-                The current
-              </p>
-              <h2 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
-                Trending now
-              </h2>
-            </div>
-            <fieldset className="flex rounded-full border border-line bg-page-raised p-1">
-              <legend className="sr-only">Trending time window</legend>
-              {(["day", "week"] as const).map((value) => (
-                <button
-                  className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-                    timeWindow === value ? "bg-accent text-white" : "text-muted hover:text-ink"
-                  }`}
-                  key={value}
-                  type="button"
-                  aria-pressed={timeWindow === value}
-                  onClick={() => setTimeWindow(value)}
-                >
-                  {value === "day" ? "Today" : "This week"}
-                </button>
-              ))}
-            </fieldset>
-          </div>
-          {trendingQuery.isError ? (
-            <StatePanel
-              kind="error"
-              title="Trending titles are unavailable"
-              message="The rest of the archive is still open. Try this section again."
-              actionLabel="Retry"
-              onAction={() => trendingQuery.refetch()}
-            />
-          ) : (
-            <div className="hide-scrollbar -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-3 md:-mx-8 md:px-8 xl:mx-0 xl:px-0">
-              {trending.map((movie, index) => (
-                <div
-                  className="w-[9.5rem] shrink-0 snap-start sm:w-[11rem] lg:w-[12rem]"
-                  key={movie.id}
-                >
-                  <MovieCard movie={movie} priority={index < 3} />
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
         {popular.length ? (
           <MovieRail
             eyebrow="Audience favorites"
-            title="Popular in the archive"
+            title="Popular in the catalog"
             movies={popular}
             action={{ label: "View all", to: "/movies" }}
           />
         ) : null}
 
         {genresQuery.data?.length ? (
-          <section className="rounded-2xl border border-line bg-[linear-gradient(120deg,var(--surface),color-mix(in_srgb,var(--base)_22%,var(--page-raised)))] p-6 sm:p-9">
-            <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.24em] text-accent-bright">
-              Pick a frequency
+          <section className="rounded-2xl border border-line bg-[linear-gradient(120deg,var(--surface),color-mix(in_srgb,var(--tint)_22%,var(--page-raised)))] p-6 sm:p-9">
+            <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-accent-bright">
+              Browse by genre
             </p>
             <div className="mt-5 flex flex-wrap gap-2.5">
               {genresQuery.data.map((genre) => (

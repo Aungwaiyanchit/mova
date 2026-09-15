@@ -22,7 +22,7 @@ export function MovieCard({ movie, priority = false }: { movie: Movie; priority?
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-page to-transparent opacity-0 transition group-hover:opacity-100" />
-        <span className="absolute right-2 top-2 flex items-center gap-1 rounded-md bg-page/85 px-2 py-1 text-[0.65rem] font-bold text-ink backdrop-blur">
+        <span className="absolute right-2 top-2 flex items-center gap-1 rounded-md bg-page/85 px-2 py-1 text-xs font-bold text-ink backdrop-blur">
           <Star className="size-3 fill-accent-bright text-accent-bright" aria-hidden="true" />
           {movie.vote_average ? movie.vote_average.toFixed(1) : "NR"}
         </span>

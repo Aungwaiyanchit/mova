@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { PageLoading } from "../components/loading";
 import { MovieGrid } from "../components/movie-grid";
 import { Pagination } from "../components/pagination";
+import { SearchBox } from "../components/search-box";
 import { StatePanel } from "../components/state-panel";
 import { api } from "../lib/api";
 
@@ -38,8 +39,11 @@ export default function SearchPage() {
       <div className="page-shell py-16">
         <StatePanel
           title="What are you looking for?"
-          message="Use the search field above to find a movie by title."
+          message="Search by movie title in the field above, or type it here."
         />
+        <div className="mx-auto mt-6 max-w-md">
+          <SearchBox compact />
+        </div>
       </div>
     );
   }
@@ -49,7 +53,7 @@ export default function SearchPage() {
   return (
     <div className="page-shell py-12 sm:py-16">
       <div className="mb-10 border-b border-line pb-8">
-        <div className="flex items-center gap-2 text-[0.65rem] font-extrabold uppercase tracking-[0.24em] text-accent-bright">
+        <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.24em] text-accent-bright">
           <Search className="size-3.5" aria-hidden="true" />
           Search results
         </div>
@@ -66,7 +70,7 @@ export default function SearchPage() {
       {resultsQuery.isError ? (
         <StatePanel
           kind="error"
-          title="Search stopped early"
+          title="Search failed"
           message="The movie service did not complete this search."
           actionLabel="Search again"
           onAction={() => resultsQuery.refetch()}
@@ -79,7 +83,16 @@ export default function SearchPage() {
         />
       ) : null}
       {resultsQuery.data?.data.length ? (
-        <div className={resultsQuery.isFetching ? "opacity-55 transition" : "transition"}>
+        <div aria-busy={resultsQuery.isFetching}>
+          {resultsQuery.isFetching ? (
+            <div
+              className="mb-4 h-0.5 overflow-hidden rounded-full bg-surface"
+              role="status"
+              aria-label="Updating results"
+            >
+              <div className="h-full w-1/3 animate-pulse bg-accent-bright" />
+            </div>
+          ) : null}
           <MovieGrid movies={resultsQuery.data.data} />
           <Pagination
             page={page}

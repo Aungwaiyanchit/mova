@@ -4,9 +4,9 @@ export default function NotFoundPage() {
   return (
     <div className="page-shell grid min-h-[65vh] place-items-center py-16 text-center">
       <div>
-        <p className="font-display text-8xl font-black text-base/55 sm:text-9xl">404</p>
-        <p className="mt-3 text-[0.65rem] font-extrabold uppercase tracking-[0.24em] text-accent-bright">
-          End of reel
+        <p className="font-display text-8xl font-black text-tint/55 sm:text-9xl">404</p>
+        <p className="mt-3 text-xs font-extrabold uppercase tracking-[0.24em] text-accent-bright">
+          Page not found
         </p>
         <h1 className="mt-3 font-display text-3xl font-extrabold sm:text-4xl">
           This scene is missing

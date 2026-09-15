@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ImageOff, Play, Star, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { HorizontalScroller } from "../components/horizontal-scroller";
 import { MovieDetailLoading } from "../components/loading";
 import { MovieRail } from "../components/movie-rail";
 import { SourceDialog } from "../components/source-dialog";
@@ -20,6 +21,14 @@ export default function MovieDetailPage() {
     queryFn: () => api.getMovie(parsedMovieId),
     enabled: validMovieId,
   });
+
+  function goBack() {
+    if (typeof window.history.state?.idx === "number" && window.history.state.idx > 0) {
+      navigate(-1);
+      return;
+    }
+    navigate("/movies");
+  }
 
   if (!validMovieId) {
     return (
@@ -68,13 +77,13 @@ export default function MovieDetailPage() {
           <button
             className="inline-flex items-center gap-2 rounded-full border border-line bg-page/50 px-4 py-2 text-xs font-bold text-muted backdrop-blur transition hover:border-accent hover:text-ink"
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
             Back
           </button>
-          <div className="mt-12 flex max-w-4xl items-end gap-6 sm:mt-24 lg:mt-32">
-            <div className="hidden w-44 shrink-0 overflow-hidden rounded-lg border border-line bg-surface shadow-2xl sm:block lg:w-52">
+          <div className="mt-12 flex max-w-4xl flex-col items-start gap-6 sm:mt-24 sm:flex-row sm:items-end lg:mt-32">
+            <div className="w-28 shrink-0 overflow-hidden rounded-lg border border-line bg-surface shadow-2xl sm:w-44 lg:w-52">
               {movie.poster ? (
                 <img
                   className="aspect-[2/3] size-full object-cover"
@@ -88,10 +97,10 @@ export default function MovieDetailPage() {
               )}
             </div>
             <div className="pb-2">
-              <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.24em] text-accent-bright">
+              <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-accent-bright">
                 Now showing
               </p>
-              <h1 className="mt-3 font-display text-5xl font-extrabold leading-[0.96] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
+              <h1 className="mt-3 line-clamp-3 font-display text-4xl font-extrabold leading-[0.96] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
                 {movie.title}
               </h1>
               {movie.original_title !== movie.title ? (
@@ -140,7 +149,7 @@ export default function MovieDetailPage() {
             <h2 className="font-display text-2xl font-bold sm:text-3xl">Cast</h2>
           </div>
           {movie.cast.length ? (
-            <div className="hide-scrollbar -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-3 md:-mx-8 md:px-8 xl:mx-0 xl:px-0">
+            <HorizontalScroller>
               {movie.cast.slice(0, 18).map((member) => (
                 <article
                   className="w-32 shrink-0 snap-start sm:w-36"
@@ -166,7 +175,7 @@ export default function MovieDetailPage() {
                   </p>
                 </article>
               ))}
-            </div>
+            </HorizontalScroller>
           ) : (
             <p className="text-sm text-muted">Cast information is not available for this title.</p>
           )}
@@ -174,7 +183,7 @@ export default function MovieDetailPage() {
 
         {movie.production_companies.length ? (
           <section className="border-y border-line py-8">
-            <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.22em] text-faint">
+            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-faint">
               A production by
             </p>
             <p className="mt-3 font-display text-xl font-bold text-muted">

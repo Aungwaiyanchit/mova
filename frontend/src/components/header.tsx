@@ -1,5 +1,5 @@
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Logo } from "./logo";
 import { SearchBox } from "./search-box";
@@ -14,6 +14,11 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
 
+  const routeKey = `${location.pathname}${location.search}`;
+  useEffect(() => {
+    if (routeKey) setMenuOpen(false);
+  }, [routeKey]);
+
   function navClass({ isActive }: { isActive: boolean }) {
     return `relative py-2 text-sm font-semibold transition ${
       isActive ? "text-ink" : "text-muted hover:text-ink"
@@ -24,7 +29,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-page/85 backdrop-blur-xl">
-      <div className="page-shell flex h-[4.5rem] items-center gap-5">
+      <div className="page-shell flex h-[4.5rem] items-center gap-3 sm:gap-5">
         <Logo />
         <nav className="ml-3 hidden items-center gap-7 md:flex" aria-label="Main navigation">
           {navItems.map((item) => (
@@ -33,8 +38,10 @@ export function Header() {
             </NavLink>
           ))}
         </nav>
-        <div className="ml-auto hidden flex-1 justify-end md:flex">
-          <SearchBox />
+        <div className="ml-auto min-w-0 flex-1">
+          <div className="ml-auto w-full max-w-sm">
+            <SearchBox />
+          </div>
         </div>
         <ThemePicker />
         <button
@@ -50,8 +57,7 @@ export function Header() {
       </div>
       {menuOpen ? (
         <div className="page-shell pb-5 md:hidden" id="mobile-navigation">
-          <SearchBox compact />
-          <nav className="mt-4 grid grid-cols-2 gap-2" aria-label="Mobile navigation">
+          <nav className="grid grid-cols-2 gap-2" aria-label="Mobile navigation">
             {navItems.map((item) => (
               <NavLink
                 className={({ isActive }) =>

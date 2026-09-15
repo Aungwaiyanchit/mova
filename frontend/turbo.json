@@ -1,0 +1,21 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": ["dist/**"],
+      "env": ["VITE_API_URL"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "with": ["streaming-backend#dev"],
+      "env": ["VITE_API_URL"]
+    },
+    "test": {
+      "env": ["VITE_API_URL"]
+    },
+    "typecheck": {
+      "outputs": ["*.tsbuildinfo"]
+    }
+  }
+}

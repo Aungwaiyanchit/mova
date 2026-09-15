@@ -12,7 +12,7 @@
   --color-faint: var(--faint);
   --color-accent: var(--accent);
   --color-accent-bright: var(--accent-bright);
-  --color-base: var(--base);
+  --color-tint: var(--tint);
   --color-line: var(--line);
 }
 
@@ -25,10 +25,10 @@
   --surface-strong: #203038;
   --ink: #f2f5f4;
   --muted: #aab4b5;
-  --faint: #717e82;
+  --faint: #8f9c9f;
   --accent: #007595;
   --accent-bright: #36bbd0;
-  --base: #79697b;
+  --tint: #79697b;
   --line: rgba(218, 229, 231, 0.14);
 }
 
@@ -39,10 +39,10 @@
   --surface-strong: #22384d;
   --ink: #f2f6fa;
   --muted: #a8b5c3;
-  --faint: #6f8092;
-  --accent: #3a88c8;
+  --faint: #8b9aab;
+  --accent: #2b6ea8;
   --accent-bright: #6eb4e8;
-  --base: #44566c;
+  --tint: #44566c;
   --line: rgba(219, 232, 244, 0.14);
 }
 
@@ -53,10 +53,10 @@
   --surface-strong: #3b2a23;
   --ink: #f7f2ee;
   --muted: #c0afa6;
-  --faint: #8c776c;
-  --accent: #c16842;
+  --faint: #a79286;
+  --accent: #a4532e;
   --accent-bright: #e59268;
-  --base: #7e5b52;
+  --tint: #7e5b52;
   --line: rgba(242, 224, 214, 0.14);
 }
 
@@ -76,7 +76,7 @@ body {
   background:
     radial-gradient(
       circle at 80% -10%,
-      color-mix(in srgb, var(--base) 22%, transparent),
+      color-mix(in srgb, var(--tint) 22%, transparent),
       transparent 31rem
     ),
     var(--page);
@@ -150,6 +150,13 @@ a {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+
+.line-clamp-4 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
 }
 
 .mova-video::cue {

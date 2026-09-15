@@ -26,7 +26,7 @@ export function SearchBox({ compact = false }: { compact?: boolean }) {
         aria-hidden="true"
       />
       <input
-        className="h-10 w-full rounded-full border border-line bg-page/65 pl-10 pr-4 text-sm text-ink placeholder:text-faint transition focus:border-accent focus:bg-page focus:outline-none"
+        className="h-10 w-full rounded-full border border-line bg-page/65 pl-10 pr-4 text-sm text-ink placeholder:text-faint transition focus:border-accent focus:bg-page"
         defaultValue={currentQuery}
         key={currentQuery}
         ref={inputRef}

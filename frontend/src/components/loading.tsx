@@ -36,8 +36,8 @@ export function MovieDetailLoading() {
       <section className="min-h-[43rem] border-b border-line bg-page-raised">
         <div className="page-shell py-8 sm:py-12">
           <div className="h-9 w-24 animate-pulse rounded-full bg-surface" />
-          <div className="mt-12 flex max-w-4xl items-end gap-6 sm:mt-24 lg:mt-32">
-            <div className="hidden aspect-[2/3] w-44 shrink-0 animate-pulse rounded-lg bg-surface sm:block lg:w-52" />
+          <div className="mt-12 flex max-w-4xl flex-col items-start gap-6 sm:mt-24 sm:flex-row sm:items-end lg:mt-32">
+            <div className="aspect-[2/3] w-28 shrink-0 animate-pulse rounded-lg bg-surface sm:w-44 lg:w-52" />
             <div className="w-full pb-2">
               <div className="h-3 w-24 animate-pulse rounded bg-surface" />
               <div className="mt-5 h-12 w-full max-w-xl animate-pulse rounded bg-surface sm:h-16" />

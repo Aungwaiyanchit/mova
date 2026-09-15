@@ -67,8 +67,8 @@ export default function MoviesPage() {
     <div className="page-shell py-12 sm:py-16">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.24em] text-accent-bright">
-            The complete reel
+          <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-accent-bright">
+            Catalog
           </p>
           <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
             Movie archive
@@ -84,13 +84,13 @@ export default function MoviesPage() {
       <div className="my-9 rounded-xl border border-line bg-page-raised p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.18em] text-muted">
           <SlidersHorizontal className="size-4 text-accent-bright" aria-hidden="true" />
-          Tune the selection
+          Filters
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="grid gap-1.5 text-xs font-bold text-faint">
             Genre
             <select
-              className="h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-accent"
+              className="h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink focus:border-accent"
               value={genre ?? ""}
               onChange={(event) => updateFilter("genre", event.target.value)}
             >
@@ -105,7 +105,7 @@ export default function MoviesPage() {
           <label className="grid gap-1.5 text-xs font-bold text-faint">
             Release year
             <select
-              className="h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-accent"
+              className="h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink focus:border-accent"
               value={year ?? ""}
               onChange={(event) => updateFilter("year", event.target.value)}
             >
@@ -120,7 +120,7 @@ export default function MoviesPage() {
           <label className="grid gap-1.5 text-xs font-bold text-faint">
             Order
             <select
-              className="h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-accent"
+              className="h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink focus:border-accent"
               value={sort}
               onChange={(event) => updateFilter("sort", event.target.value)}
             >
@@ -137,8 +137,8 @@ export default function MoviesPage() {
       {moviesQuery.isError ? (
         <StatePanel
           kind="error"
-          title="This reel would not load"
-          message="The movie archive could not be reached with these filters."
+          title="Couldn't load movies"
+          message="The movie catalog could not be reached with these filters."
           actionLabel="Try again"
           onAction={() => moviesQuery.refetch()}
         />
@@ -150,7 +150,16 @@ export default function MoviesPage() {
         />
       ) : null}
       {moviesQuery.data?.data.length ? (
-        <div className={moviesQuery.isFetching ? "opacity-55 transition" : "transition"}>
+        <div aria-busy={moviesQuery.isFetching}>
+          {moviesQuery.isFetching ? (
+            <div
+              className="mb-4 h-0.5 overflow-hidden rounded-full bg-surface"
+              role="status"
+              aria-label="Updating results"
+            >
+              <div className="h-full w-1/3 animate-pulse bg-accent-bright" />
+            </div>
+          ) : null}
           <MovieGrid movies={moviesQuery.data.data} />
           <Pagination
             page={page}

@@ -10,6 +10,7 @@
     "format": "biome format --write .",
     "lint": "biome lint .",
     "check": "biome check .",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "start": "nest start",
     "dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",

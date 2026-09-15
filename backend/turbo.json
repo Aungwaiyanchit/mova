@@ -1,0 +1,37 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "env": [
+        "NODE_ENV",
+        "PORT",
+        "FRONTEND_URL",
+        "TMDB_API_KEY",
+        "TMDB_ACCESS_TOKEN",
+        "TMDB_BASE_URL",
+        "TORRENTIO_BASE_URL",
+        "SUBTITLES_BASE_URL",
+        "CACHE_TTL",
+        "THROTTLE_TTL",
+        "THROTTLE_LIMIT"
+      ]
+    },
+    "typecheck": {
+      "outputs": ["*.tsbuildinfo"]
+    },
+    "test": {
+      "outputs": ["coverage/**"],
+      "env": [
+        "NODE_ENV",
+        "TMDB_API_KEY",
+        "THROTTLE_TTL",
+        "THROTTLE_LIMIT"
+      ]
+    }
+  }
+}

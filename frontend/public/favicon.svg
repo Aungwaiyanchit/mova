@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="MOVA">
+  <title>MOVA</title>
+  <rect width="32" height="32" rx="6" fill="#007595"/>
+  <path fill="#081014" d="M8 24V8h3.4l4.6 9.2L20.6 8H24v16h-3.1V13.1L16.7 22h-1.4L11.1 13.1V24H8z"/>
+</svg>

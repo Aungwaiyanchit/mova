@@ -31,6 +31,7 @@ export function SourceDialog({
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const playerSectionRef = useRef<HTMLDivElement>(null);
   const [selectedQuality, setSelectedQuality] = useState<StreamQuality>();
   const [selectedStream, setSelectedStream] = useState<MovieStream>();
   const streamsQuery = useQuery({
@@ -46,6 +47,11 @@ export function SourceDialog({
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
   }, [open]);
+
+  useEffect(() => {
+    if (!selectedStream) return;
+    playerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedStream]);
 
   function closeDialog() {
     setSelectedQuality(undefined);
@@ -77,7 +83,7 @@ export function SourceDialog({
     >
       <div className="sticky top-0 z-20 flex items-start justify-between border-b border-line bg-page-raised/95 px-5 py-5 backdrop-blur sm:px-7">
         <div>
-          <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.22em] text-accent-bright">
+          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-accent-bright">
             Watch now
           </p>
           <h2 className="mt-1 font-display text-xl font-bold" id="source-dialog-title">
@@ -95,36 +101,40 @@ export function SourceDialog({
       </div>
 
       <div className="p-5 sm:p-7">
-        {selectedStream && selectedUrl ? (
-          <VideoPlayer
-            fallbackUrl={fallbackUrl}
-            infoHash={selectedStream.infoHash}
-            movieId={movieId}
-            movieTitle={movieTitle}
-            poster={poster}
-            quality={streamQuality(selectedStream)}
-            sourceLabel={selectedStream.title}
-            streamType={selectedStream.type}
-            url={selectedUrl}
-          />
-        ) : (
-          <div className="grid aspect-video place-items-center rounded-xl border border-line bg-black px-6 text-center">
-            <div>
-              <span className="mx-auto grid size-14 place-items-center rounded-full bg-accent text-white">
-                <Play className="ml-0.5 size-6 fill-current" aria-hidden="true" />
-              </span>
-              <p className="mt-4 font-display text-lg font-bold text-white">
-                Choose a source to play
-              </p>
-              <p className="mt-1 text-xs text-white/55">Choose one of the ranked sources below.</p>
+        <div ref={playerSectionRef}>
+          {selectedStream && selectedUrl ? (
+            <VideoPlayer
+              fallbackUrl={fallbackUrl}
+              infoHash={selectedStream.infoHash}
+              movieId={movieId}
+              movieTitle={movieTitle}
+              poster={poster}
+              quality={streamQuality(selectedStream)}
+              sourceLabel={selectedStream.title}
+              streamType={selectedStream.type}
+              url={selectedUrl}
+            />
+          ) : (
+            <div className="grid aspect-video place-items-center rounded-xl border border-line bg-black px-6 text-center">
+              <div>
+                <span className="mx-auto grid size-14 place-items-center rounded-full bg-accent text-white">
+                  <Play className="ml-0.5 size-6 fill-current" aria-hidden="true" />
+                </span>
+                <p className="mt-4 font-display text-lg font-bold text-white">
+                  Choose a source to play
+                </p>
+                <p className="mt-1 text-xs text-white/70">
+                  Choose one of the ranked sources below.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="mt-7">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.22em] text-accent-bright">
+              <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-accent-bright">
                 Available sources
               </p>
               <h3 className="mt-1 font-display text-xl font-bold">Select quality</h3>
@@ -183,7 +193,7 @@ export function SourceDialog({
                     }}
                   >
                     {group.quality}
-                    <span className="ml-2 opacity-60">{group.streams.length}</span>
+                    <span className="ml-2 text-current/70">{group.streams.length}</span>
                   </button>
                 ))}
               </fieldset>
@@ -197,7 +207,7 @@ export function SourceDialog({
 
                   return (
                     <article
-                      className={`relative flex min-h-72 flex-col overflow-hidden rounded-2xl border bg-surface transition duration-300 hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-xl hover:shadow-black/15 ${
+                      className={`relative flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-surface transition duration-300 hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-xl hover:shadow-black/15 ${
                         playing ? "border-accent shadow-lg shadow-accent/10" : "border-line"
                       }`}
                       key={stream.id}
@@ -210,7 +220,7 @@ export function SourceDialog({
                               {streamQuality(stream)}
                             </span>
                             <div className="min-w-0">
-                              <p className="text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-faint">
+                              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-faint">
                                 Ranked source {String(index + 1).padStart(2, "0")}
                               </p>
                               <p className="mt-1 text-xs font-bold text-muted">
@@ -219,7 +229,7 @@ export function SourceDialog({
                             </div>
                           </div>
                           {playing ? (
-                            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-1 text-[0.6rem] font-extrabold uppercase tracking-wider text-accent-bright">
+                            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wider text-accent-bright">
                               <span
                                 className="size-1.5 rounded-full bg-accent-bright"
                                 aria-hidden="true"
@@ -240,7 +250,7 @@ export function SourceDialog({
                           <div className="mt-3 flex flex-wrap gap-1.5">
                             {technicalTags.map((tag) => (
                               <span
-                                className="rounded-md border border-line bg-surface-strong/60 px-2 py-1 text-[0.6rem] font-bold text-muted"
+                                className="rounded-md border border-line bg-surface-strong/60 px-2 py-1 text-xs font-bold text-muted"
                                 key={tag}
                               >
                                 {tag}
@@ -251,7 +261,7 @@ export function SourceDialog({
 
                         <dl className="mt-auto grid grid-cols-3 divide-x divide-line overflow-hidden rounded-xl border border-line bg-page/35">
                           <div className="min-w-0 px-3 py-2.5">
-                            <dt className="flex items-center gap-1.5 text-[0.55rem] font-extrabold uppercase tracking-wider text-faint">
+                            <dt className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-faint">
                               <Users className="size-3" aria-hidden="true" />
                               Seeds
                             </dt>
@@ -260,7 +270,7 @@ export function SourceDialog({
                             </dd>
                           </div>
                           <div className="min-w-0 px-3 py-2.5">
-                            <dt className="flex items-center gap-1.5 text-[0.55rem] font-extrabold uppercase tracking-wider text-faint">
+                            <dt className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-faint">
                               <HardDrive className="size-3" aria-hidden="true" />
                               Size
                             </dt>
@@ -269,7 +279,7 @@ export function SourceDialog({
                             </dd>
                           </div>
                           <div className="min-w-0 px-3 py-2.5">
-                            <dt className="flex items-center gap-1.5 text-[0.55rem] font-extrabold uppercase tracking-wider text-faint">
+                            <dt className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-faint">
                               <Server className="size-3" aria-hidden="true" />
                               Indexer
                             </dt>
